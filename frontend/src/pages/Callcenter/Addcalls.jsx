@@ -290,7 +290,7 @@ const Addcalls = () => {
                                             size="small"
                                             color="warning"
                                             variant="outlined"
-                                            sx={{ width: '100px', height: '35px' }}
+                                            sx={{ width: 'auto', height: 'auto' }}
                                             onClick={(event) => handleSubmit(event, item)}
                                         >
                                             Add call

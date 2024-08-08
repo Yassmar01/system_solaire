@@ -131,7 +131,7 @@ function LayoutSysAdmin() {
                     height: '100vh',
                 }}
             >
-                <CircularProgress color="success"/>
+                <CircularProgress color="success" />
             </Box>
         );
     }
@@ -157,7 +157,7 @@ function LayoutSysAdmin() {
                         <Stack direction="row" spacing={1} >
                             <Chip
                                 avatar={<Avatar sx={{ backgroundColor: 'white' }} />}
-                                label={user.name}
+                                label={user.fullname}
                                 sx={{ color: 'white' }}
                                 onClick={handleMenuClick}
 
@@ -246,6 +246,12 @@ function LayoutSysAdmin() {
                         >
                             {menuItems.map((item) => (
                                 <Tab
+                                    sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'start',
+                                        //     flexGrow: 1,
+                                    }}
                                     key={item.label}
                                     icon={item.icon}
                                     label={item.label}
@@ -272,9 +278,7 @@ function LayoutSysAdmin() {
                     </Box>
                 </Main>
             </Box>
-            <footer>
-                <Myfooter />
-            </footer>
+
         </>
     );
 }

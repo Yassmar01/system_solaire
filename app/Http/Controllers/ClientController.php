@@ -3,9 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\client;
-use Illuminate\Http\Request;
+use App\Http\Requests\StoreclientRequest;
+use App\Http\Requests\UpdateclientRequest;
 
-class ClientController extends Controller
+class clientcontroller extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -14,16 +15,17 @@ class ClientController extends Controller
      */
     public function index()
     {
-        //
+        $clients = client::all();
+        return $clients;
     }
 
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Http\Requests\StoreclientRequest  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(StoreclientRequest $request)
     {
         //
     }
@@ -36,19 +38,25 @@ class ClientController extends Controller
      */
     public function show(client $client)
     {
-        //
+        return $client;
     }
 
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Http\Requests\UpdateclientRequest  $request
      * @param  \App\Models\client  $client
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, client $client)
+    public function update(UpdateclientRequest $request, client $client)
     {
-        //
+        $client->update($request->validated());
+
+        return response()->json([
+            'client' => $client,
+            'message' =>  'client Updated Successfully',
+             'errors' =>[]
+        ]);
     }
 
     /**
@@ -59,6 +67,11 @@ class ClientController extends Controller
      */
     public function destroy(client $client)
     {
-        //
+        $client->delete();
+        return response()->json([
+            'id' => $client->id,
+            'message' => 'Call Deleted Successfully',
+             'errors' =>[]
+        ]);
     }
 }

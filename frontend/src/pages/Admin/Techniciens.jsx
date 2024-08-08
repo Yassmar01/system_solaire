@@ -4,90 +4,14 @@ import { Autocomplete, Box, IconButton, Paper, Table, TableBody, TableCell, Tabl
 import React, { useEffect, useState } from "react";
 import PropTypes from 'prop-types';
 import { Link } from "react-router-dom";
-
-
-
-function createData(fullname, CIN, Telephone, province) {
-    return {
-        fullname,
-        CIN,
-        Telephone,
-        province,
-
-
-    };
-}
-
-function Row(props) {
-    const { row } = props;
-
-
-
-    return (
-        <React.Fragment>
-
-
-            <TableRow sx={{ '& > *': { borderBottom: 'unset' } }}>
-                <TableCell component="th" scope="row">
-                    {row.fullname}
-                </TableCell>
-                <TableCell align="center">{row.CIN}</TableCell>
-
-                <TableCell align="center">{row.Telephone}</TableCell>
-                <TableCell align="center">{row.province}</TableCell>
-                <TableCell>
-                    <IconButton
-                        aria-label="expand row"
-                        size="small"
-                    >
-                        <Link to={'/Techniciens/DetailsTech'} target="_blank"><RemoveRedEye color="success" /></Link>
-
-                    </IconButton>
-                </TableCell>
-
-
-            </TableRow>
-
-        </React.Fragment>
-    );
-}
-
-Row.propTypes = {
-    row: PropTypes.shape({
-        CIN: PropTypes.string.isRequired,
-        Telephone: PropTypes.string.isRequired,
-
-        history: PropTypes.arrayOf(
-            PropTypes.shape({
-                amount: PropTypes.number.isRequired,
-                customerId: PropTypes.string.isRequired,
-                phone_cust: PropTypes.string.isRequired,
-
-                date: PropTypes.string.isRequired,
-                Statue: PropTypes.string.isRequired,
-            }),
-        ).isRequired,
-        fullname: PropTypes.string.isRequired,
-
-        province: PropTypes.string.isRequired,
-    }).isRequired,
-};
-
-const rows = [
-    createData('ali alaoui', 'D67889', '0765432311', 'Meknès'),
-    createData('xx yy', 'D67889', '0765432311', 'Meknès'),
-    createData('zz zzzzzz', 'D67889', '0765432311', 'El Hajeb'),
-    createData('ali salah', 'D67889', '0765432311', 'Ifrane'),
-    createData('salah salah', 'D67889', '0765432311', 'Ifrane'),
-
-];
+import Accounts_management from "@/services/Accounts_management";
 
 function Techniciens() {
     const [selectedRegion, setSelectedRegion] = useState(null);
     const [search, setSearch] = useState('');
     const [provinceKey, setProvinceKey] = useState(0);
     const regions = [
-        { value: '', label: 'Sélectionnez une région', provinces: [] },
+
         { value: 'Tanger-Tétouan-Al Hoceïma', label: 'Tanger-Tétouan-Al Hoceïma', provinces: ["Tanger-Asilah", "Fahs Anjra", "M'diq-Fnideq", "Chefchaouen", "Larache", "Ouezzane", "Tetouan", "Al Hoceima"] },
         { value: 'Oriental', label: 'L\'Oriental', provinces: ["Berkane", "Driouch", "Figuig", "Guercif", "Jerada", "Nador", "Oujda-Angad", "Taourirt"] },
         { value: 'Fès-Meknès', label: 'Fès-Meknès', provinces: ["Fès", "Boulemane", "El Hajeb", "Ifrane", "Meknès", "Moulay Yacoub", "Séfrou", "Taounate", "Taza"] },
@@ -100,37 +24,59 @@ function Techniciens() {
         { value: 'Guelmim-Oued Noun', label: 'Guelmim-Oued Noun', provinces: ["Assa-Zag", "Guelmim", "Tan-Tan", "Sidi Ifni"] }
     ];
 
-    const [province, setprovince] = useState("Meknès");
+    const [province, setprovince] = useState("");
 
-    const [filteredRows, setFilteredRows] = useState(rows);
+    const [allchefs, setAllchefs] = useState([]);
+    const [filteredRows, setFilteredRows] = useState([]);
+
     const handelsearch = (event) => {
         setSearch(event.target.value)
+
     }
 
     useEffect(() => {
-
-        let filtered = rows;
-
         setFilteredRows([]);
+
+        let filtered = allchefs;
         if (province) {
             filtered = filtered.filter(f => {
                 return f.province.toLocaleLowerCase().includes(province.toLocaleLowerCase())
-
             })
+            // console.log(filtered)
 
             setFilteredRows(filtered);
+        } else {
+            setFilteredRows([]);
         }
 
         if (search) {
             filtered = filtered.filter(f => {
                 return f.fullname.toLocaleLowerCase().includes(search.toLocaleLowerCase()) ||
                     f.CIN.toLocaleLowerCase().includes(search.toLocaleLowerCase()) ||
-                    f.Telephone.toLocaleLowerCase().includes(search.toLocaleLowerCase())
+                    f.telephone.toLocaleLowerCase().includes(search.toLocaleLowerCase())
             })
             setFilteredRows(filtered);
+
         }
+
     }, [province, search]);
 
+
+    useEffect(() => {
+        Accounts_management.all('chefequipe')
+            .then(({ data, status }) => {
+                if (status === 200) {
+                    //  console.log(data);
+                    setAllchefs(data)
+
+
+                }
+            }).catch(({ response }) => {
+                if (response) {
+                    console.log(response);
+                }
+            });
+    }, []);
 
     return (
         <>
@@ -144,6 +90,9 @@ function Techniciens() {
 
                         setSelectedRegion(newValue);
                         setProvinceKey(prevKey => prevKey + 1);
+                        if (!newValue) {
+                            setprovince("");
+                        }
                     }}
                     renderInput={(params) => (
                         <TextField {...params} label="Choose Region" margin="normal" color='success' />
@@ -173,7 +122,8 @@ function Techniciens() {
                 <Table aria-label="collapsible table" >
                     <TableHead>
                         <TableRow>
-                            <TableCell >Fullname</TableCell>
+                            <TableCell >Email</TableCell>
+                            <TableCell align="center">Fullname</TableCell>
                             <TableCell align="center">CIN</TableCell>
                             <TableCell align="center">Telephone</TableCell>
                             <TableCell align="center">Province</TableCell>
@@ -181,11 +131,45 @@ function Techniciens() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {filteredRows.length !== 0 ? (filteredRows.map((row) => (
-                            <Row key={row.CIN} row={row} />
-                        ))) : <TableRow>
-                            <TableCell colSpan={5} align="center">
-                                No items
+                        {filteredRows.length !== 0 ? (
+                            filteredRows.map((row, index) =>
+                            (
+                                <TableRow key={row.CIN}>
+                                    <TableCell>{row.email}</TableCell>
+
+                                    <TableCell align="center"> {row.fullname}  </TableCell>
+
+
+                                    <TableCell align="center">{row.CIN}</TableCell>
+
+                                    <TableCell align="center">{row.telephone}</TableCell>
+                                    <TableCell align="center">{row.province}</TableCell>
+                                    <TableCell>
+                                        <IconButton
+                                            aria-label="expand row"
+                                            size="small"
+                                        >
+                                            <Link
+
+                                                to={`/Techniciens/DetailsTech?chef=${encodeURIComponent(btoa(row.id))}`}
+                                                //  to={`/callcenter/Details?agent=${encodeURIComponent(btoa(row.id))}`}
+
+                                                target="_blank">
+
+                                                <RemoveRedEye color="success" />
+
+                                            </Link>
+
+                                        </IconButton>
+                                    </TableCell>
+
+
+                                </TableRow>
+
+                            ))
+                        ) : <TableRow>
+                            <TableCell colSpan={6} align="center">
+                                No Techniciens
                             </TableCell>
                         </TableRow>}
                     </TableBody>

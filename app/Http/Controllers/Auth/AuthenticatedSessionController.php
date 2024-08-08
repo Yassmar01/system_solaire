@@ -17,7 +17,8 @@ class AuthenticatedSessionController extends Controller
     public function store(LoginRequest $request): JsonResponse
     {
         $request->authenticate();
-        $guards = array_keys(config('auth.guards'));
+       $guards = array_keys(config('auth.guards'));
+
         $user = null;
 
         foreach ($guards as $guard) {

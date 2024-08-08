@@ -19,14 +19,14 @@ import Tooltip from '@mui/material/Tooltip';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
 import { visuallyHidden } from '@mui/utils';
-import { AutoMode, Build, Send, Settings } from '@mui/icons-material';
-import { Alert, Autocomplete, Button, Grid, Snackbar, TextField, ToggleButton, styled } from '@mui/material';
+import { AddCircle, AutoMode, Build, Delete, DeleteForever, DeleteOutline, Remove, Send, Settings } from '@mui/icons-material';
+import { Alert, Autocomplete, Button, Grid, Icon, Snackbar, TextField, ToggleButton, styled } from '@mui/material';
 import { green, pink, red } from '@mui/material/colors';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { Label } from '@/components/ui/label';
 import * as XLSX from 'xlsx';
-import { Key } from 'lucide-react';
+import { DeleteIcon } from 'lucide-react';
 
 const VisuallyHiddenInput = ({ handleFileChange }) => (
     <input
@@ -66,31 +66,11 @@ function stableSort(array, comparator) {
     return stabilizedThis.map((el) => el[0]);
 }
 
-const headCells = [
-    {
-        id: 'Fullname',
-        numeric: false,
-        disablePadding: true,
-        label: 'Fullname',
-    },
-    {
-        id: 'CIN',
-        numeric: true,
-        disablePadding: false,
-        label: 'CIN',
-    },
-    {
-        id: 'Telephone',
-        numeric: true,
-        disablePadding: false,
-        label: 'Phone Number',
-    }
-
-];
 
 function EnhancedTableHead(props) {
-    const { onSelectAllClick, order, orderBy, numSelected, rowCount, onRequestSort } =
-        props;
+
+
+    const { onSelectAllClick, numSelected, rowCount, headCells, handleRemoveColumn } = props;
     const createSortHandler = (property) => (event) => {
         onRequestSort(event, property);
     };
@@ -116,6 +96,17 @@ function EnhancedTableHead(props) {
                         sx={{ textAlign: "center" }}
                     >
                         {headCell.label}
+
+                        {/* <IconButton
+                            size="small"
+                            onClick={() => handleRemoveColumn(headCell.id)}
+                            sx={{ ml: 1 }}
+                        >
+                            <Tooltip title="Delete" arrow placement="top" >
+
+                                <Remove fontSize="small" color='error' />
+                            </Tooltip>
+                        </IconButton> */}
                     </TableCell>
                 ))}
             </TableRow>
@@ -125,16 +116,16 @@ function EnhancedTableHead(props) {
 
 EnhancedTableHead.propTypes = {
     numSelected: PropTypes.number.isRequired,
-    onRequestSort: PropTypes.func.isRequired,
+
     onSelectAllClick: PropTypes.func.isRequired,
-    order: PropTypes.oneOf(['asc', 'desc']).isRequired,
-    orderBy: PropTypes.string.isRequired,
     rowCount: PropTypes.number.isRequired,
+    headCells: PropTypes.array.isRequired,
+    handleRemoveColumn: PropTypes.func.isRequired,
 };
 
 function EnhancedTableToolbar(props) {
     let { numSelected } = props;
-    const { agents } = props;
+    const { agents, setJsonData, setHeadCells } = props;
     const [agentselect, setAgentselect] = React.useState(null);
 
     const [open, setOpen] = React.useState(false);
@@ -173,8 +164,14 @@ function EnhancedTableToolbar(props) {
         }
         setOpen(false);
 
-
     };
+    const handeldeletetable = () => {
+        setJsonData([]);
+        setHeadCells([]);
+        // sessionStorage.removeItem('jsonData');
+        // sessionStorage.removeItem('headcell');
+
+    }
     const handleClose_err = (event, reason) => {
         if (reason === 'clickaway') {
             return;
@@ -211,14 +208,30 @@ function EnhancedTableToolbar(props) {
                     {numSelected} selected
                 </Typography>
             ) : (
-                <Typography
-                    sx={{ flex: '1 1 100%' }}
-                    variant="h6"
-                    id="tableTitle"
-                    component="div"
-                >
-                    Clients :
-                </Typography>
+                <>
+
+                    <Typography
+                        sx={{ flex: '1 1 100%' }}
+                        variant="h6"
+                        id="tableTitle"
+                        component="div"
+                    >
+                        Clients :
+                    </Typography>
+
+                    <IconButton
+                        size="small"
+                        onClick={handeldeletetable}
+                        sx={{ ml: 1 }}
+                    >
+
+                        <Tooltip title="Empty the table" arrow placement="top" >
+
+                            <DeleteOutline fontSize="medium" color='error' />
+                        </Tooltip>
+                    </IconButton>
+                </>
+
             )}
 
             {numSelected > 0 && (
@@ -298,12 +311,13 @@ EnhancedTableToolbar.propTypes = {
     numSelected: PropTypes.number.isRequired,
 };
 function Facebookleads() {
-
+    // const [columns, setColumns] = React.useState()
+    const columnsrefs = React.useRef([]);
     const [jsonData, setJsonData] = React.useState(() => {
 
         const savedData = sessionStorage.getItem('jsonData');
         return savedData ? JSON.parse(savedData) : [];
-      });
+    });
     const [order, setOrder] = React.useState('asc');
     const [orderBy, setOrderBy] = React.useState('CIN');
     const [selected, setSelected] = React.useState([]);
@@ -311,6 +325,12 @@ function Facebookleads() {
     const [dense, setDense] = React.useState(false);
     const [rowsPerPage, setRowsPerPage] = React.useState(5);
 
+    const [headCells, setHeadCells] = React.useState(
+        () => {
+            const savedHeadCells = sessionStorage.getItem('headcell');
+            return savedHeadCells ? JSON.parse(savedHeadCells) : [];
+        }
+    );
 
 
     const handleSelectAllClick = (event) => {
@@ -321,6 +341,7 @@ function Facebookleads() {
             return;
         }
         setSelected([]);
+        console.log(event.target.checked)
 
     };
 
@@ -422,10 +443,14 @@ function Facebookleads() {
         const file = event.target.files[0];
         setFile(file);
         readExcel(file);
+        // Reset the input value to null to allow the same file to be uploaded again
+        event.target.value = null;
+
     };
 
 
     const readExcel = (file) => {
+        console.log(file.name)
         const reader = new FileReader();
         reader.onload = (event) => {
             const data = event.target.result;
@@ -439,21 +464,49 @@ function Facebookleads() {
         reader.readAsBinaryString(file);
     };
 
+    const handleRemoveColumn = (columnId) => {
+        setHeadCells((prevHeadCells) =>
+            prevHeadCells.filter((headCell) => headCell.id !== columnId)
+        );
+    };
+    const add_columns = () => {
+        console.log('add columns: ' + columnsrefs.current.value)
+
+        if (columnsrefs.current && columnsrefs.current.value) {
+            const columnsToAdd = columnsrefs.current.value.split(',');
+            const newHeadCells = columnsToAdd.map(column => ({
+                id: column.trim(),
+                numeric: false,
+                disablePadding: false,
+                label: column.trim()
+            }));
+            setHeadCells(prevHeadCells => [...prevHeadCells, ...newHeadCells]);
+        }
+
+    }
+
     React.useEffect(() => {
         const savedData = sessionStorage.getItem('jsonData');
-
-
         if (savedData) {
             setJsonData(JSON.parse(savedData));
+        }
+
+
+        const saveheads = sessionStorage.getItem('headcell');
+        if (saveheads) {
+            setHeadCells(JSON.parse(saveheads));
         }
     }, []);
 
     React.useEffect(() => {
         sessionStorage.setItem('jsonData', JSON.stringify(jsonData));
-       // console.log(jsonData)
 
     }, [jsonData]);
 
+
+    React.useEffect(() => {
+        sessionStorage.setItem('headcell', JSON.stringify(headCells));
+    }, [headCells]);
 
     return (
         <>
@@ -494,14 +547,54 @@ function Facebookleads() {
                     />
                 </Grid>
             </Grid>
+
+
+
+
+
+
+
             {isManual && (
+
                 <Grid container spacing={12} sx={{ mt: -7, width: '90%' }}>
+
+
                     <Grid item xs={12}>
 
+                        <Box>
+
+                            <TextField
+                                sx={{ width: 'auto' }}
+                                size="small"
+                                required
+                                fullWidth
+                                name="new-column"
+                                color='success'
+                                type="text"
+                                autoComplete="new-column"
+
+                                inputRef={columnsrefs}
+
+                            />
+
+                            <Button
+
+                                type="submit"
+                                color='warning'
+                                fullWidth
+                                variant="contained"
+                                sx={{ width: 'auto', ml: 2 }}
+                                onClick={add_columns}
+                            >
+
+                                <AddCircle sx={{ mr: 1 }} />
+                                Add Column
+                            </Button>
+                        </Box>
                         <Button
                             sx={{
                                 bgcolor: green[700],
-                                mb: 4,
+                                my: 4,
                                 "&:hover": { bgcolor: green[600] },
                                 width: 'auto'
                             }}
@@ -515,12 +608,14 @@ function Facebookleads() {
                             Upload Excel file
                             <VisuallyHiddenInput handleFileChange={handleFileChange} />
                         </Button>
-
-
-
                         <Box sx={{ width: '100%' }}>
                             <Paper sx={{ width: '100%', mb: 2 }}>
-                                <EnhancedTableToolbar numSelected={selected.length} agents={agents} />
+                                <EnhancedTableToolbar
+                                    numSelected={selected.length}
+                                    agents={agents}
+                                    setHeadCells={setHeadCells}
+                                    setJsonData={setJsonData}
+                                />
                                 <TableContainer>
                                     <Table
                                         sx={{ minWidth: '100%' }}
@@ -533,6 +628,8 @@ function Facebookleads() {
                                             onSelectAllClick={handleSelectAllClick}
 
                                             rowCount={visibleRows.length}
+                                            headCells={headCells}
+                                            handleRemoveColumn={handleRemoveColumn}
                                         />
                                         <TableBody>
                                             {visibleRows.map((row, index) => {
@@ -601,7 +698,8 @@ function Facebookleads() {
                                 control={<Switch checked={dense} onChange={handleChangeDense} color='success' />}
                                 label="Dense padding"
                             />
-                        </Box></Grid>
+                        </Box>
+                    </Grid>
 
                 </Grid >
             )

@@ -9,14 +9,10 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
-const statuses = [
-    { label: 'Confirmé', number: 50 },
-    { label: 'En négociation de prix', number: 60 },
-    { label: 'Rendez-vous planifié', number: 7 },
-    { label: 'Veut après', number: 4 },
-    { label: 'Injoignable', number: 30 },
-    { label: 'Annulé', number: 12 },
-];
+import { useLocation } from "react-router-dom";
+import Accounts_management from "@/services/Accounts_management";
+
+
 const Item = styled(Paper)(({ theme }) => ({
     backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
     ...theme.typography.body2,
@@ -26,22 +22,72 @@ const Item = styled(Paper)(({ theme }) => ({
 
 
 }));
-function createData(ID, Fullname, Telephone, Province, status, Date) {
-    return { ID, Fullname, Telephone, Province, status, Date };
-}
 
-const rows = [
-    createData(1, 'Ali alaoui', '06xxxxxxx', 'El hajeb', "Injoignable", '06/07/2024'),
-    createData(2, 'Ali alaoui', '06xxxxxxx', 'Dkhissa', "Injoignable", '06/07/2024'),
-    createData(3, 'xx yy', '06xxxxxxx', 'El hajeb', "Confirmé", '06/07/2024'),
-    createData(4, 'Omar Omar', '07xxxxxxx', 'El hajeb', "Confirmé", '07/07/2024'),
-    createData(5, 'yassine', '07xxxxxxx', 'meknes', "Confirmé", '07/07/2024')
-]
 function Details() {
 
+
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const encodedId = queryParams.get('agent');
+
+    // Decode the base64 encoded calls_clients_filter
+    const agentid = encodedId ? atob(encodedId) : null;
     const [selectedDate, setSelectedDate] = useState(dayjs());
-    const [filteredRows, setFilteredRows] = useState(rows);
+    const [calls_clients, setCalls_clients] = useState([]);
+    const [filteredRows, setFilteredRows] = useState([]);
+    const [filtredcalls_search, setFiltredcalls_search] = useState(filteredRows);
+
     const [searchTerm, setSearchTerm] = useState("");
+    const [agent, setAgent] = useState({});
+    const [confirmationrate, setConfirmationrate] = useState();
+    const [responserate, setResponserate] = useState();
+
+    const statusCounts = filteredRows.reduce((acc, call) => {
+        acc[call.statue] = (acc[call.statue] || 0) + 1;
+        return acc;
+    }, {});
+
+
+    // Define the statuses with their corresponding labels
+    const statusLabels = [
+        { label: 'Confirmé', status: 'Confirmé' },
+        { label: 'En négociation de prix', status: 'En négociation de prix' },
+        { label: 'Rendez-vous planifié', status: 'Rendez-vous planifié' },
+        { label: 'Veut après', status: 'Veut après' },
+        { label: 'Injoignable', status: 'Injoignable' },
+        { label: 'Annulé', status: 'Annulé' },
+    ];
+    useEffect(() => {
+        const confirmStatus = statusLabels.find(({ label }) => label === "Confirmé");
+
+        const Injoignablecount = statusCounts["Injoignable"] || 0;
+        // console.log(Injoignablecount)
+        if (confirmStatus) {
+            const number = statusCounts[confirmStatus.status] || 0;
+
+
+            if (number !== 0) {
+                let result = (number * 100) / filteredRows.length
+                setConfirmationrate(result.toFixed(2));
+
+
+                let responserate = (number * 100) / (filteredRows.length - Injoignablecount)
+                setResponserate(responserate.toFixed(2));
+                console.log(responserate)
+            } else {
+                setConfirmationrate(0);
+                setResponserate(0);
+            }
+        }
+    }, [statusLabels, statusCounts, filteredRows]);
+
+    const statuses = statusLabels.map(({ label, status }) => ({
+        label,
+        number: statusCounts[status] || 0
+    }));
+
+
+
 
     const handleChange = (event) => {
         setSearchTerm(event.target.value)
@@ -52,39 +98,95 @@ function Details() {
 
     }
 
-
     useEffect(() => {
 
-        let filtered = rows;
+        Accounts_management.show('callcenter', agentid)
+            .then(({ data, status }) => {
+                if (status === 200) {
+                    setAgent(data)
+                }
+            }).catch(({ response }) => {
+                if (response) {
+                    console.log(response);
+                }
+            });
 
-        if (searchTerm) {
-            filtered = filtered.filter(f => {
-                return f.Fullname.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase()) ||
-                    f.Telephone.toString().includes(searchTerm) ||
-                    f.status.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase()) ||
-                    f.Province.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase())
-            })
-        }
+        Accounts_management.all('calls-clients')
+            .then(({ data, status }) => {
+                if (status === 200) {
+                    let filteredData = data.filter(item => item.call_center_id == agentid);
+
+                    setCalls_clients(filteredData)
+                    if (selectedDate) {
+                        const formattedDate = dayjs(selectedDate).format('YYYY-MM-DD');
+                        // console.log(formattedDate);
+                        filteredData = filteredData.filter(row => row.date === formattedDate);
+
+                        setFilteredRows(filteredData);
+
+                        setFiltredcalls_search(filteredData)
+                    }
+
+                }
+            }).catch(({ response }) => {
+                if (response) {
+                    console.log(response);
+                }
+            });
+
+    }, []);
+    useEffect(() => {
+
+        let filtered = calls_clients;
+
 
         if (selectedDate) {
-            const formattedDate = dayjs(selectedDate).format('DD/MM/YYYY');
-            console.log(formattedDate)
-            filtered = filtered.filter(row => row.Date === formattedDate);
+            const formattedDate = dayjs(selectedDate).format('YYYY-MM-DD');
+            // console.log(formattedDate);
+            filtered = filtered.filter(row => row.date === formattedDate);
+
+            setFilteredRows(filtered);
+            setFiltredcalls_search(filtered)
         }
-        setFilteredRows(filtered);
-    }, [searchTerm, selectedDate]);
+
+    }, [selectedDate]);
+
+
+    useEffect(() => {
+        let searchfilter = filteredRows;
+
+        if (searchTerm) {
+            searchfilter = searchfilter.filter(f => {
+                return f.client.fullname.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase()) ||
+                    f.client.telephone.toString().includes(searchTerm) ||
+                    f.statue.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase()) ||
+                    f.client.province.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase())
+            })
+            console.log(searchfilter)
+            setFiltredcalls_search(searchfilter)
+
+        }
+        else {
+            setFiltredcalls_search(filteredRows)
+
+        }
+
+    }, [searchTerm]);
     return (
         <>
+
             <Stack
                 direction={{ xs: 'column', sm: 'row' }}
                 spacing={{ xs: 1, sm: 2, md: 4 }}
                 sx={{ width: '100%' }}
             >
-                <Item sx={{ pt: 6 }}> <Stack spacing={1}>
+                <Item sx={{ pt: 6, }}>
+                    <Stack spacing={1}>
 
-                    <Typography variant="h4" sx={{ color: blueGrey[900] }}>
-                        <Person sx={{ ml: 2, mb: 2, fontSize: 50, color: orange[700] }} /> Fadoua Alaoui </Typography>
-                </Stack>
+                        <Typography variant="h4" sx={{ color: blueGrey[900] }}>
+                            <Person sx={{ ml: 2, mb: 2, fontSize: 50, color: orange[700] }} /> {agent.fullname}
+                        </Typography>
+                    </Stack>
 
                 </Item>
 
@@ -114,7 +216,7 @@ function Details() {
                         TOTAL Calls
                         <PhoneMissed sx={{ ml: 2, fontSize: 50, color: red[400] }} />
                     </Typography>
-                    <Typography variant="h4" sx={{ color: blueGrey[900] }}>163</Typography>
+                    <Typography variant="h4" sx={{ color: blueGrey[900] }}>{filteredRows.length}</Typography>
                 </Stack>
 
                 </Item>
@@ -123,7 +225,7 @@ function Details() {
                         Confirmation Rate
                         <ConfirmationNumber sx={{ ml: 2, fontSize: 50, color: blue[700] }} />
                     </Typography>
-                    <Typography variant="h4" sx={{ color: blueGrey[900] }}>30.67 %</Typography>
+                    <Typography variant="h4" sx={{ color: blueGrey[900] }}>{confirmationrate} %</Typography>
                 </Stack>
 
                 </Item>
@@ -136,7 +238,7 @@ function Details() {
                         Response Rate
                         <QuestionAnswer sx={{ ml: 2, fontSize: 50, color: orange[700] }} />
                     </Typography>
-                    <Typography variant="h4" sx={{ color: blueGrey[900] }}>37.59 %</Typography>
+                    <Typography variant="h4" sx={{ color: blueGrey[900] }}>{responserate} %</Typography>
                 </Stack>
 
                 </Item>
@@ -189,27 +291,26 @@ function Details() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {filteredRows.length !== 0 ? (filteredRows.map((row) => (
+                        {filtredcalls_search.length !== 0 ? (filtredcalls_search.map((row) => (
                             <TableRow
-                                key={row.ID}
+                                key={row.id}
                                 sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                             >
-                                <TableCell>{row.Fullname}</TableCell>
-                                <TableCell align="center">{row.Telephone}</TableCell>
-                                <TableCell align="center">{row.Province}</TableCell>
-                                <TableCell align="center">  <Chip label={row.status} color="success" variant="outlined" /></TableCell>
+                                <TableCell>{row.client.fullname}</TableCell>
+                                <TableCell align="center">{row.client.telephone}</TableCell>
+                                <TableCell align="center">{row.client.province}</TableCell>
+                                <TableCell align="center">  <Chip label={row.statue} color="info" variant="outlined" /></TableCell>
 
-                                <TableCell align="center">{row.Date}</TableCell>
+                                <TableCell align="center">{row.date}</TableCell>
                             </TableRow>
                         ))) : <TableRow>
                             <TableCell colSpan={5} align="center">
-                                No items
+                                No Calls
                             </TableCell>
                         </TableRow>}
                     </TableBody>
                 </Table>
             </TableContainer>
-
         </>
     );
 }

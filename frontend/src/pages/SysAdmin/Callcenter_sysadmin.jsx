@@ -58,7 +58,7 @@ function Row(props) {
                 <TableCell align="center">{row.Telephone}</TableCell>
                 <TableCell align="center">{row.Confirmation_Rate}</TableCell>
                 <TableCell>
-                    <Tooltip title="Details" placement="top">
+                    <Tooltip title="Details" placement="top" arrow>
                         <IconButton
                             aria-label="expand row"
                             size="small"

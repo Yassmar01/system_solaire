@@ -32,29 +32,26 @@ function LogAdmin() {
             password: "123456789",
         },
     })
+
+
     const { setError, formState: { isSubmitting } } = form
 
     const onSubmit = async values => {
 
-        console.log(values)
         await login(values.email, values.password)
             .then(
                 ({ data, status }) => {
                     if (status === 200) {
-
                         setAuthenticated(true)
                         const { role } = data.user
                         navigate(redirecttodashboard(role))
                     }
                 })
-
             .catch(({ response }) => {
                 setError('email', {
                     message: response.data.message
                 })
-
             })
-
     }
     return (
         <>

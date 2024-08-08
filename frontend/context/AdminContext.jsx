@@ -25,6 +25,8 @@ export default function UserContext({ children }) {
         setUser({})
         _setAuthenticated(false)
         sessionStorage.removeItem('jsonData');
+        sessionStorage.removeItem('headcell');
+
     }
 
     return (

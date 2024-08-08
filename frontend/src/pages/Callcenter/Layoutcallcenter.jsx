@@ -307,15 +307,14 @@ function Layoutcallcenter() {
                             alignItems: 'center',
                             justifyContent: 'center',
                             flexGrow: 1,
+
                         }}
                     >
                         <Outlet />
                     </Box>
                 </Main>
             </Box>
-            <footer>
-                <Myfooter />
-            </footer>
+            
         </>
     );
 }

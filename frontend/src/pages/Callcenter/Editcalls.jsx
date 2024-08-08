@@ -25,6 +25,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import { green } from '@mui/material/colors';
+import { DemoContainer } from '@mui/x-date-pickers/internals/demo';
 const Item = styled(Paper)(({ theme }) => ({
     backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
     ...theme.typography.body2,
@@ -126,7 +127,14 @@ const Editcalls = () => {
         { id: 3, fullname: 'kamal', province: 'meknes', telephone: '06xxxxxxxx', comment: 'commrnt 3', status: 'Rdvplanifie', date: "11/07/2024" },
     ];
 
-    const [status, setStatus] = useState({});
+    // const [status, setStatus] = useState({});
+    const [status, setStatus] = useState(() => {
+        const initialStatus = {};
+        data.forEach(item => {
+            initialStatus[item.id] = item.status;
+        });
+        return initialStatus;
+    });
     const [errormessage, setErrormessage] = useState("");
     const [selectedDate, setSelectedDate] = useState({});
     const [formData, setFormData] = useState({});
@@ -137,6 +145,7 @@ const Editcalls = () => {
         });
         return initialComments;
     });
+
     const handleClose = (event, reason) => {
         if (reason === 'clickaway') {
             return;
@@ -301,6 +310,13 @@ const Editcalls = () => {
                         inputProps={{ 'aria-label': 'search for clients' }}
                     />
                 </Item>
+                {/* <Item sx={{ backgroundColor: 'transparent', boxShadow: 'none', display: 'flex', alignItems: 'center', width: '100%', height: 57, my: 5 }}>
+                <LocalizationProvider dateAdapter={AdapterDayjs} >
+                    <DemoContainer components={['DatePicker']} >
+                        <DatePicker label="Search by date" defaultValue={selectedDate} onChange={handleDateChange} />
+                    </DemoContainer>
+                </LocalizationProvider>
+            </Item> */}
 
                 <Table>
                     <TableHead>
@@ -331,15 +347,12 @@ const Editcalls = () => {
                                             getOptionLabel={(option) => option.label}
                                             renderInput={(params) => (
                                                 <TextField {...params} label="Choose status"
-                                                 margin="normal" color="success"
+                                                    margin="normal" color="success"
 
-                                                 inputRef={(el) => (statusrefs.current[item.id] = el)}
-                                                  />
+                                                    inputRef={(el) => (statusrefs.current[item.id] = el)}
+                                                />
                                             )}
                                             onChange={(event, newValue) => handleStatusChange(event, newValue, item.id)}
-
-
-
 
                                         />
                                     </TableCell>
@@ -358,7 +371,7 @@ const Editcalls = () => {
                                             size="small"
                                             color="error"
                                             variant="contained"
-                                            sx={{ width: '100px', height: '35px' }}
+                                            sx={{ width: 'auto', height: 'auto' }}
                                             onClick={(event) => handleSubmit(event, item)}
                                         >
                                             Edit call
@@ -394,12 +407,13 @@ const Editcalls = () => {
                                                     <Autocomplete
                                                         id="technician"
 
-
+                                                        sx={{ width: '100%' }}
                                                         options={techniciens}
                                                         getOptionLabel={(option) => option.label}
                                                         renderInput={(params) => (
                                                             <TextField {...params} label="Choose Technician"
                                                                 margin="normal" color="success" fullWidth
+                                                                autoFocus
                                                                 inputRef={(el) => (techrefs.current[item.id] = el)}
                                                             />
                                                         )}
@@ -416,6 +430,7 @@ const Editcalls = () => {
                                                             <TextField {...params} label="Choose Activity"
                                                                 margin="normal" color="success" fullWidth
                                                                 inputRef={(el) => (activityrefs.current[item.id] = el)}
+                                                                autoFocus
                                                             />
                                                         )}
                                                     />
@@ -425,7 +440,7 @@ const Editcalls = () => {
                                                         <DatePicker
                                                             sx={{ mt: 2 }}
                                                             inputRef={(el) => (datevisitrefs.current[item.id] = el)}
-
+                                                            autoFocus
                                                             label="Choose date"
                                                             value={selectedDate[item.id] || null}
                                                             minDate={dayjs()}
@@ -439,6 +454,8 @@ const Editcalls = () => {
                                                 <Grid item xs={2}>
                                                     <TextField
                                                         inputRef={(el) => (pointrefs.current[item.id] = el)}
+                                                        value={pointrefs[item.id] || null}
+                                                        autoFocus
                                                         color="success"
                                                         type="number"
                                                         fullWidth
@@ -450,10 +467,30 @@ const Editcalls = () => {
                                                         }}
                                                     />
                                                 </Grid>
+
+
+                                                <Grid item xs={2}>
+                                                    <TextField
+                                                        // inputRef={(el) => (pointrefs.current[item.id] = el)}
+                                                        // value={pointrefs[item.id] || null}
+                                                        autoFocus
+                                                        color="success"
+                                                        type="number"
+                                                        fullWidth
+                                                        label="hectares"
+                                                        margin="normal"
+                                                        variant="standard"
+                                                        InputProps={{
+                                                            inputProps: { min: 0 },
+                                                        }}
+                                                    />
+                                                </Grid>
                                                 <Grid item xs={2}>
                                                     <TextField
                                                         inputRef={(el) => (pricerefs.current[item.id] = el)}
+                                                        autoFocus
                                                         color="success"
+                                                        value={pricerefs[item.id] || null}
                                                         required
                                                         fullWidth
                                                         label="Price"

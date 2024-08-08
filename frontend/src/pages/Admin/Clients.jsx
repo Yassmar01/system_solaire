@@ -159,8 +159,8 @@ function Clients({ searchTerm }) {
     );
 }
 
-Clients.propTypes = {
-    searchTerm: PropTypes.string.isRequired,
-};
+// Clients.propTypes = {
+//     searchTerm: PropTypes.string.isRequired,
+// };
 
 export default Clients;

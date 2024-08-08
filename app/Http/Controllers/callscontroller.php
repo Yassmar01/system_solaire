@@ -3,9 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\call;
+use App\Models\call_center;
 use Illuminate\Http\Request;
 
-class CallController extends Controller
+class callscontroller extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -14,7 +15,9 @@ class CallController extends Controller
      */
     public function index()
     {
-        //
+       // $calls = call::all();
+        $calls = Call::orderBy('date', 'asc')->get();
+        return response()->json($calls);
     }
 
     /**
@@ -36,9 +39,28 @@ class CallController extends Controller
      */
     public function show(call $call)
     {
-        //
+        return $call;
     }
 
+
+    public function client_calls()
+    {
+        // Fetch calls with the associated client data
+        $calls = Call::with('client')->get();
+        return response()->json($calls);
+    }
+
+    public function getCallById($id)
+{
+    // Fetch the call with the associated client data based on the given ID
+    $call = call_center::with('call')->find($id);
+
+    if ($call) {
+        return response()->json($call);
+    } else {
+        return response()->json(['error' => 'Call not found'], 404);
+    }
+}
     /**
      * Update the specified resource in storage.
      *
@@ -48,7 +70,13 @@ class CallController extends Controller
      */
     public function update(Request $request, call $call)
     {
-        //
+        $call->update($request->validated());
+
+    return response()->json([
+        'callcenter' => $call,
+        'message' =>  'Call Updated Successfully',
+         'errors' =>[]
+    ]);
     }
 
     /**
@@ -59,6 +87,11 @@ class CallController extends Controller
      */
     public function destroy(call $call)
     {
-        //
+        $call->delete();
+        return response()->json([
+            'id' => $call->id,
+            'message' => 'Call Deleted Successfully',
+             'errors' =>[]
+        ]);
     }
 }

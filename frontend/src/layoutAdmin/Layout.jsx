@@ -256,6 +256,12 @@ function Layout() {
                         >
                             {menuItems.map((item) => (
                                 <Tab
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'start',
+                               //     flexGrow: 1,
+                                }}
                                     key={item.label}
                                     icon={item.icon}
                                     label={item.label}
@@ -282,9 +288,7 @@ function Layout() {
                     </Box>
                 </Main>
             </Box>
-            <footer>
-                <Myfooter />
-            </footer>
+
         </>
     );
 }
