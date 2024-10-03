@@ -20,6 +20,7 @@ import Layoutcallcenter from "@/pages/Callcenter/Layoutcallcenter";
 import Calls from "@/pages/Callcenter/Calls";
 import Addcalls from "@/pages/Callcenter/Addcalls";
 import Editcalls from "@/pages/Callcenter/Editcalls";
+import Meetings from "@/pages/Callcenter/Meetings";
 
 export const redirecttodashboard = (roletype) => {
     switch (roletype) {
@@ -147,6 +148,11 @@ export const router = createBrowserRouter([
             {
                 path: '/callcenter/edit',
                 element: <Editcalls />
+            },
+
+            {
+                path: '/callcenter/meetings',
+                element: <Meetings />
             },
 
 

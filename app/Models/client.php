@@ -16,7 +16,10 @@ class client extends Model
         return $this->hasMany(Call::class);
     }
 
-
+    public function columns()
+    {
+        return $this->hasMany(column::class);
+    }
     public function operations()
     {
         return $this->hasMany(etude_operation::class);

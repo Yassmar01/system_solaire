@@ -13,7 +13,7 @@ class Updateetude_operationRequest extends FormRequest
      */
     public function authorize()
     {
-        return false;
+        return true;
     }
 
     /**
@@ -24,7 +24,12 @@ class Updateetude_operationRequest extends FormRequest
     public function rules()
     {
         return [
-            //
+            'name_activity'=>'required',
+            'hectares'=>'required',
+          'delivered' =>'',
+            'date'=> 'required' ,
+            'client_id'=> 'required',
+            'chef_equipe_id'=> 'required' ,
         ];
     }
 }

@@ -33,4 +33,10 @@ class call_center extends User
         'updated_at'
 
     ];
+
+
+    public function calls()
+    {
+        return $this->hasMany(Call::class);
+    }
 }

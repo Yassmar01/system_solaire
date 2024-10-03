@@ -28,8 +28,8 @@ function LogAdmin() {
     const form = useForm({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            email: "admin@gmail.com",
-            password: "123456789",
+            email: "Bette.Hickle@gmail.com",
+            password: "Bette.Hickle@gmail.com",
         },
     })
 

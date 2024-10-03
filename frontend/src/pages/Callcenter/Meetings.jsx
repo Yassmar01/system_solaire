@@ -92,7 +92,7 @@ const theme = createTheme({
     },
 });
 
-const Editcalls = () => {
+const Meetings = () => {
     const { user } = useUserContext();
     const [opensnakerror, setOpensnakerror] = useState(false);
     const [open, setOpen] = useState(false);
@@ -174,7 +174,7 @@ const Editcalls = () => {
     const [Datesearch, setDatesearch] = useState(dayjs());
     const [selectedDate, setSelectedDate] = useState(dayjs());
 
-    const [selectedstatue, setSelectedstatue] = useState("");
+
 
 
     const [issubmitting, setIssubmitting] = useState(null);
@@ -205,31 +205,10 @@ const Editcalls = () => {
     };
 
 
-    const handleStatus_serach_Change = (event, newvalue) => {
-
-        if (newvalue) {
-
-            setSelectedstatue(newvalue.value)
-        } else {
-            setSelectedstatue("")
-        }
 
 
-    };
 
-    // const handleDateChange = (date, id) => {
-    //     setSelectedDate((prevDates) => ({
-    //         ...prevDates,
-    //         [id]: date,
-    //     }));
 
-    // }
-
-    const DateChangesearch = (event) => {
-        setDatesearch(dayjs(event).format('YYYY-MM-DD'));
-        // console.log('date change', selectedstatue)
-        //  setSelectedstatue()
-    };
 
     const validateForm = (item) => {
         let formValid = true;
@@ -296,7 +275,7 @@ const Editcalls = () => {
 
     const handleSubmit = async (event, item) => {
 
-        //  console.log('statue:', selectedstatue);
+
         let submitvalues = {};
         setIssubmitting(item.id);
         event.preventDefault();
@@ -336,7 +315,7 @@ const Editcalls = () => {
                             const submitpointsvalue = {
                                 etude_operation_id: etude_operation_id,
                                 price: point,
-                                lebele: 'point ' + (index + 1)
+                                lebele: 'point ' + (index+1)
                             };
                             const { status: pointStatus } = await axiosClient.post('api/points', submitpointsvalue);
                             // if (pointStatus === 201) {
@@ -398,9 +377,9 @@ const Editcalls = () => {
                 if (status === 200) {
                     //  console.log(data);
                     let filtered = data;
-                    const formattedDate = dayjs(Datesearch).format('YYYY-MM-DD');
+                    const formattedDate = dayjs().format('YYYY-MM-DD');
                     //   console.log(formattedDate)
-                    filtered = filtered.filter(row => row.date === formattedDate && row.statue !== 'Confirmé');
+                    filtered = filtered.filter(row => row.RDV_call === formattedDate && row.statue === 'Rendez-vous planifié');
 
                     setCalls(data);
                     setFilteredRows(filtered)
@@ -422,9 +401,9 @@ const Editcalls = () => {
                 if (status === 200) {
                     //  console.log(data);
                     let filtered = data;
-                    const formattedDate = dayjs(Datesearch).format('YYYY-MM-DD');
+                    const formattedDate = dayjs().format('YYYY-MM-DD');
                     //   console.log(formattedDate)
-                    filtered = filtered.filter(row => row.date === formattedDate && row.statue !== 'Confirmé');
+                    filtered = filtered.filter(row => row.RDV_call === formattedDate && row.statue === 'Rendez-vous planifié');
 
                     setCalls(data);
                     setFilteredRows(filtered)
@@ -455,43 +434,9 @@ const Editcalls = () => {
 
     }, [])
 
-    useEffect(() => {
-
-        let filtered = calls;
-        if (Datesearch) {
-            const formattedDate = dayjs(Datesearch).format('YYYY-MM-DD');
-
-            filtered = filtered.filter(row => row.date === formattedDate
-                && row.statue !== 'Confirmé'
-
-            );
-            // console.log(calls)
-        }
-        setFilteredRows(filtered);
 
 
-    }, [Datesearch]);
 
-
-    useEffect(() => {
-
-        let filtered = calls;
-        const formattedDate = dayjs(Datesearch).format('YYYY-MM-DD');
-        if (selectedstatue) {
-
-            filtered = filtered.filter(row => row.statue === selectedstatue
-                && row.date === formattedDate
-                && row.statue !== 'Confirmé');
-
-            setFilteredRows(filtered);
-        } else {
-
-
-            filtered = filtered.filter(row => row.date === formattedDate && row.statue !== 'Confirmé');
-            setFilteredRows(filtered);
-        }
-
-    }, [selectedstatue]);
 
     useEffect(() => {
         setFiltredtech([]);
@@ -551,34 +496,15 @@ const Editcalls = () => {
 
 
 
-                <Item sx={{
-                    backgroundColor: 'transparent', boxShadow: 'none',
-                    display: 'flex', alignItems: 'center', width: '100%', height: 57, my: 5
-                }}>
-                    <LocalizationProvider dateAdapter={AdapterDayjs} >
-                        <DemoContainer components={['DatePicker']} >
-                            <DatePicker label="Search by date" defaultValue={Datesearch} onChange={DateChangesearch} />
-                        </DemoContainer>
-                    </LocalizationProvider>
-
-                    <Autocomplete
-                        sx={{ width: '25%', ml: '10%' }}
-                        id="status"
-                        name="status"
-                        options={status_searchOptions}
-                        getOptionLabel={(option) => option.label}
-
-                        renderInput={(params) => (
-                            <TextField {...params} label="Choose status" margin="normal" color="success"
 
 
-                            />
-                        )}
-                        onChange={(event, newValue) => handleStatus_serach_Change(event, newValue)}
-                    />
+
+                <Typography sx={{ ml: 2, backgroundColor: blue[200], textAlign: 'center' }}>
+
+                    Today's Meetings :
+                </Typography>
 
 
-                </Item>
 
                 <Table>
                     <TableHead>
@@ -587,7 +513,7 @@ const Editcalls = () => {
 
                             <TableCell align='center'>Remarque</TableCell>
                             <TableCell align='center'>Status</TableCell>
-                            <TableCell align="center">Date</TableCell>
+                            <TableCell align="center">Call's date</TableCell>
                             <TableCell align="center">Actions</TableCell>
                         </TableRow>
                     </TableHead>
@@ -912,4 +838,4 @@ const Editcalls = () => {
     );
 };
 
-export default Editcalls;
+export default Meetings;

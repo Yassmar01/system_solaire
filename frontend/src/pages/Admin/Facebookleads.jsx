@@ -27,7 +27,8 @@ import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { Label } from '@/components/ui/label';
 import * as XLSX from 'xlsx';
 import { DeleteIcon } from 'lucide-react';
-
+import Accounts_management from '@/services/Accounts_management';
+import { axiosClient } from '@/api/axios';
 const VisuallyHiddenInput = ({ handleFileChange }) => (
     <input
         type="file"
@@ -124,50 +125,126 @@ EnhancedTableHead.propTypes = {
 };
 
 function EnhancedTableToolbar(props) {
-    let { numSelected } = props;
-    const { agents, setJsonData, setHeadCells } = props;
+    let { numSelected, setColumns, headCells, checkedclients } = props;
+    const { agents, setJsonData, setHeadCells, jsonData, setSelected, setCheckedclients } = props;
     const [agentselect, setAgentselect] = React.useState(null);
 
     const [open, setOpen] = React.useState(false);
     const [opensnakerror, setOpensnakerror] = React.useState(false);
     const [confirmaffect, setConfirmaffect] = React.useState(false);
 
+    const [loading, setLoading] = React.useState(false);
 
     const handleCloseDialog = () => {
         setConfirmaffect(false);
     };
-    const handleConfirmDialog = () => {
-        //confirm affectation of clients
 
-        setOpen(true);
-        setConfirmaffect(false);
+
+    const handleConfirmDialog = () => {
+        // Confirm affectation of clients
+        setLoading(true);
+
+        // Array to store promises
+        const promises = [];
+
+        for (let index = 0, length = checkedclients.length; index < length; index += 1) {
+            const clientData = checkedclients[index]; // Assuming each row represents a client
+
+            // Create a promise chain for each client and push it into the promises array
+            const clientPromise = axiosClient.post('api/client')
+                .then(({ data, status }) => {
+                    if (status === 201) {
+                        const clientId = data.id; // Assuming the newly created client ID is returned
+
+                        // Now affect client to this agent
+                        return axiosClient.post('api/call', {
+                            client_id: clientId,
+                            call_center_id: agentselect
+                        }).then(({ data, status }) => {
+                            if (status === 201) {
+                                console.log('Affectation client:', data);
+                            }
+
+                            // Now, create the columns for this client
+                            const columnPromises = headCells.map((header, columnIndex) => {
+                                const columnValue = clientData[columnIndex]; // Assuming the order of columns in the row matches the headCells
+
+                                return axiosClient.post('api/column', {
+                                    column_name: header.label,
+                                    value: columnValue,
+                                    client_id: clientId, // Associate this column with the client
+                                }).then(({ data, status }) => {
+                                    if (status === 201) {
+                                        console.log('Column creation:', data);
+                                    }
+                                }).catch(({ response }) => {
+                                    console.error('Error creating column:', response);
+                                });
+                            });
+
+                            // Return a promise that resolves when all columns are created
+                            return Promise.all(columnPromises);
+                        }).catch(({ response }) => {
+                            console.error('Error affecting client:', response);
+                        });
+                    }
+                }).catch(({ response }) => {
+                    console.error('Error creating client:', response);
+                });
+
+            // Push the clientPromise to the promises array
+            promises.push(clientPromise);
+        }
+
+        // Wait for all promises to complete
+        Promise.all(promises)
+            .then(() => {
+                setLoading(false);
+                setConfirmaffect(false);
+                // Remove the row from checkedcalls array if it's unchecked
+                const uncheckedClients = jsonData.filter(client => !checkedclients.includes(client));
+                setJsonData(uncheckedClients)
+                setSelected([]);
+                setCheckedclients([])
+                swal({
+                    title: "Success!",
+                    text: "Clients affected successfully",
+                    icon: "success",
+                    buttons: false,
+                    timer: 3000, // Show the message for 3 seconds
+                });
+            })
+            .catch((error) => {
+                console.error('Error in processing clients:', error);
+                setLoading(false);
+                setConfirmaffect(false);
+            });
     };
+
+
+
     const handleClick = () => {
-        if (numSelected > 0 && agentselect !== null) {
+        if (numSelected > 0 && agentselect !== null && headCells.length === jsonData[0].length) {
 
             setOpensnakerror(false);
             setConfirmaffect(true);
 
 
+
         }
         else {
             setOpensnakerror(true);
-            setOpen(false);
+
 
         }
 
     };
 
-    const handleClose = (event, reason) => {
-        if (reason === 'clickaway') {
-            return;
-        }
-        setOpen(false);
 
-    };
     const handeldeletetable = () => {
         setJsonData([]);
         setHeadCells([]);
+        setColumns([])
         // sessionStorage.removeItem('jsonData');
         // sessionStorage.removeItem('headcell');
 
@@ -180,10 +257,11 @@ function EnhancedTableToolbar(props) {
 
 
     };
+
     React.useEffect(() => {
         setAgentselect(null);
 
-        setOpen(false);
+
         setOpensnakerror(false);
 
     }, [numSelected]);
@@ -239,18 +317,19 @@ function EnhancedTableToolbar(props) {
                     <Autocomplete
                         onChange={(event, newValue) => {
                             if (newValue) {
-                                setAgentselect(newValue.CIN);
+                                setAgentselect(newValue.id);
+
 
                             } else {
                                 setAgentselect(null);
                             }
                         }}
-                        value={agents.find(agent => agent.CIN === agentselect) || null}
+                        value={agents.find(agent => agent.id === agentselect) || null}
                         disableClearable
                         id="highlights-demo"
                         sx={{ width: 300, mr: 4 }}
                         options={agents}
-                        getOptionLabel={(option) => option.Fullname}
+                        getOptionLabel={(option) => option.fullname}
                         renderInput={(params) => (
                             <TextField {...params} label="Choose Agent" margin="normal" color='success' />
                         )}
@@ -265,16 +344,7 @@ function EnhancedTableToolbar(props) {
                     </Tooltip>
 
                     <>
-                        {agentselect && (<Snackbar open={open} autoHideDuration={6000} onClose={handleClose}>
-                            <Alert
-                                onClose={handleClose}
-                                severity="success"
-                                variant="filled"
-                                sx={{ width: '100%' }}
-                            >
-                                Clients are Affected with success !
-                            </Alert>
-                        </Snackbar>)}
+
 
 
                         <Snackbar open={opensnakerror}
@@ -289,7 +359,7 @@ function EnhancedTableToolbar(props) {
                                 variant="filled"
                                 sx={{ width: '100%' }}
                             >
-                                Select an Agent !
+                                Agent and columns are required  !
                             </Alert>
                         </Snackbar>
 
@@ -299,6 +369,8 @@ function EnhancedTableToolbar(props) {
                             handleConfirm={handleConfirmDialog}
                             title="Confirm Clients Affectation"
                             message=" Are you sure you want to Affect Thos Clients?"
+                            loading={loading}
+                            loadingmessage="Affecting"
                         />
                     </>
                 </>
@@ -311,15 +383,17 @@ EnhancedTableToolbar.propTypes = {
     numSelected: PropTypes.number.isRequired,
 };
 function Facebookleads() {
-    // const [columns, setColumns] = React.useState()
+    const [columns, setColumns] = React.useState()
     const columnsrefs = React.useRef([]);
     const [jsonData, setJsonData] = React.useState(() => {
 
         const savedData = sessionStorage.getItem('jsonData');
         return savedData ? JSON.parse(savedData) : [];
     });
+
+
     const [order, setOrder] = React.useState('asc');
-    const [orderBy, setOrderBy] = React.useState('CIN');
+    const [orderBy, setOrderBy] = React.useState('id');
     const [selected, setSelected] = React.useState([]);
     const [page, setPage] = React.useState(0);
     const [dense, setDense] = React.useState(false);
@@ -333,36 +407,41 @@ function Facebookleads() {
     );
 
 
+
     const handleSelectAllClick = (event) => {
 
         if (event.target.checked) {
             const newSelected = visibleRows.map((row, index) => page * rowsPerPage + index);
             setSelected(newSelected);
+            setCheckedclients(visibleRows);
             return;
+        } else {
+            setCheckedclients([]);
         }
         setSelected([]);
-        console.log(event.target.checked)
+
 
     };
 
-    const handleClick = (event, id) => {
-        const selectedIndex = selected.indexOf(id);
-        let newSelected = [];
+    // const handleClick = (event, id, row) => {
+    //     const selectedIndex = selected.indexOf(id);
+    //     let newSelected = [];
 
-        if (selectedIndex === -1) {
-            newSelected = newSelected.concat(selected, id);
-        } else if (selectedIndex === 0) {
-            newSelected = newSelected.concat(selected.slice(1));
-        } else if (selectedIndex === selected.length - 1) {
-            newSelected = newSelected.concat(selected.slice(0, -1));
-        } else if (selectedIndex > 0) {
-            newSelected = newSelected.concat(
-                selected.slice(0, selectedIndex),
-                selected.slice(selectedIndex + 1),
-            );
-        }
-        setSelected(newSelected);
-    };
+    //     if (selectedIndex === -1) {
+    //         newSelected = newSelected.concat(selected, id);
+    //     } else if (selectedIndex === 0) {
+    //         newSelected = newSelected.concat(selected.slice(1));
+    //     } else if (selectedIndex === selected.length - 1) {
+    //         newSelected = newSelected.concat(selected.slice(0, -1));
+    //     } else if (selectedIndex > 0) {
+    //         newSelected = newSelected.concat(
+    //             selected.slice(0, selectedIndex),
+    //             selected.slice(selectedIndex + 1),
+    //         );
+    //     }
+    //     setSelected(newSelected);
+
+    // };
 
 
     const handleChangePage = (event, newPage) => {
@@ -392,15 +471,8 @@ function Facebookleads() {
             ),
         [order, orderBy, page, rowsPerPage, jsonData],
     );
-    const agents = [
+    const [agents, setAgents] = React.useState([]);
 
-        { Fullname: 'Agent 1', CIN: 'M001' },
-        { Fullname: 'Agent 2', CIN: 'M002' },
-        { Fullname: 'Agent 3', CIN: 'M003' },
-        { Fullname: "Agent 4", CIN: 'M004' },
-        { Fullname: 'Agent 5', CIN: 'M005' },
-        { Fullname: 'Agent 6', CIN: 'M006' },
-    ];
     const [isManual, setIsManual] = React.useState(() => {
         const savedMode = localStorage.getItem('mode');
         return savedMode ? JSON.parse(savedMode) : false;
@@ -409,6 +481,12 @@ function Facebookleads() {
     const [label, setLabel] = React.useState(isManual ? 'Manual Mode' : 'Automatic Mode');
     const [openDialog, setOpenDialog] = React.useState(false);
     const [confirmaffect, setConfirmaffect] = React.useState(false);
+    const [checkedclients, setCheckedclients] = React.useState([]);
+
+
+    React.useEffect(() => {
+        console.log("Updated checked clients:", checkedclients);
+    }, [checkedclients]);
 
 
     const handleCheck = () => {
@@ -450,7 +528,6 @@ function Facebookleads() {
 
 
     const readExcel = (file) => {
-        console.log(file.name)
         const reader = new FileReader();
         reader.onload = (event) => {
             const data = event.target.result;
@@ -459,6 +536,7 @@ function Facebookleads() {
             const worksheet = workbook.Sheets[sheetName];
             const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
             setJsonData(jsonData);
+
 
         };
         reader.readAsBinaryString(file);
@@ -470,18 +548,20 @@ function Facebookleads() {
         );
     };
     const add_columns = () => {
-        console.log('add columns: ' + columnsrefs.current.value)
 
         if (columnsrefs.current && columnsrefs.current.value) {
             const columnsToAdd = columnsrefs.current.value.split(',');
             const newHeadCells = columnsToAdd.map(column => ({
-                id: column.trim(),
+
                 numeric: false,
                 disablePadding: false,
                 label: column.trim()
             }));
             setHeadCells(prevHeadCells => [...prevHeadCells, ...newHeadCells]);
+
+
         }
+        columnsrefs.current.value = ""
 
     }
 
@@ -508,6 +588,25 @@ function Facebookleads() {
         sessionStorage.setItem('headcell', JSON.stringify(headCells));
     }, [headCells]);
 
+    React.useEffect(
+        () => {
+
+            setCheckedclients([])
+            Accounts_management.all('callcenter')
+                .then(({ data, status }) => {
+                    if (status === 200) {
+                        //  console.log(data);
+                        setAgents(data)
+
+
+                    }
+                }).catch(({ response }) => {
+                    if (response) {
+                        console.log(response);
+                    }
+                });
+
+        }, [])
     return (
         <>
             <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }}
@@ -520,21 +619,21 @@ function Facebookleads() {
                 <Grid item xs={8}>
 
 
-                    <ToggleButton
+                    {/* <ToggleButton
                         onClick={handleCheck}
-                        sx={{
-                            bgcolor: red[700],
-                            color: 'white',
-                            "&:hover": { bgcolor: red[500] },
-                            width: 'auto'
-                        }}
-                        variant="contained"
-
+                        // sx={{
+                        //     bgcolor: red[300],
+                        //     color: 'white',
+                        //     "&:hover": { bgcolor: red[500] },
+                        //     width: 'auto'
+                        // }}
+                        sx={{ color: red[700], width: 'auto', "&:hover": { bgcolor: red[700], color: 'white', } }}
+                        variant="outlined"
                     >
                         {label === "Automatic Mode" ? <AutoMode sx={{ mr: 1 }} /> : <Build sx={{ mr: 1 }} />}
 
                         {label}
-                    </ToggleButton>
+                    </ToggleButton> */}
 
 
 
@@ -613,8 +712,15 @@ function Facebookleads() {
                                 <EnhancedTableToolbar
                                     numSelected={selected.length}
                                     agents={agents}
+                                    setColumns={setColumns}
                                     setHeadCells={setHeadCells}
+                                    setSelected={setSelected}
+                                    headCells={headCells}
                                     setJsonData={setJsonData}
+                                    setCheckedclients={setCheckedclients}
+
+                                    jsonData={jsonData}
+                                    checkedclients={checkedclients}
                                 />
                                 <TableContainer>
                                     <Table
@@ -637,18 +743,63 @@ function Facebookleads() {
                                                 const isItemSelected = isSelected(globalIndex);
                                                 const labelId = `enhanced-table-checkbox-${globalIndex}`;
 
+
+
+
+
+                                                const handleCheckboxChange = (event) => {
+
+
+                                                    const selectedIndex = selected.indexOf(globalIndex);
+
+                                                    let newSelected = [];
+
+                                                    if (selectedIndex === -1) {
+                                                        newSelected = newSelected.concat(selected, globalIndex);
+                                                    } else if (selectedIndex === 0) {
+                                                        newSelected = newSelected.concat(selected.slice(1));
+                                                    } else if (selectedIndex === selected.length - 1) {
+                                                        newSelected = newSelected.concat(selected.slice(0, -1));
+                                                    } else if (selectedIndex > 0) {
+                                                        newSelected = newSelected.concat(
+                                                            selected.slice(0, selectedIndex),
+                                                            selected.slice(selectedIndex + 1),
+                                                        );
+                                                    }
+
+                                                    setSelected(newSelected);
+
+
+
+
+
+                                                    if (event.target.checked) {
+                                                        // Add the row to checkedcalls array if it's checked
+                                                        setCheckedclients((prevCheckedcalls) => [...prevCheckedcalls, row]);
+
+                                                    } else {
+                                                        // Remove the row from checkedcalls array if it's unchecked
+                                                        setCheckedclients((prevCheckedcalls) => prevCheckedcalls.filter(c => c !== row));
+
+                                                        //  console.log('unchecked')
+
+                                                    }
+
+                                                    //     console.log(checkedclients);
+                                                };
+
                                                 return (
 
 
                                                     <TableRow
-                                                        hover
-                                                        onClick={(event) => handleClick(event, globalIndex)}
+
+                                                        //  onClick={(event) => handleClick(event, globalIndex, row)}
                                                         role="checkbox"
                                                         aria-checked={isItemSelected}
                                                         tabIndex={-1}
                                                         key={globalIndex}
                                                         selected={isItemSelected}
-                                                        sx={{ cursor: 'pointer' }}
+
                                                     >
                                                         <TableCell padding="checkbox">
                                                             <Checkbox
@@ -657,7 +808,10 @@ function Facebookleads() {
                                                                 inputProps={{
                                                                     'aria-labelledby': labelId,
                                                                 }}
+                                                                onChange={(event) => {
 
+                                                                    handleCheckboxChange(event);
+                                                                }}
                                                             />
                                                         </TableCell>
 

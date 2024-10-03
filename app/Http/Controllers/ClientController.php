@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\client;
 use App\Http\Requests\StoreclientRequest;
 use App\Http\Requests\UpdateclientRequest;
+use App\Models\column;
 
 class clientcontroller extends Controller
 {
@@ -15,8 +16,21 @@ class clientcontroller extends Controller
      */
     public function index()
     {
-        $clients = client::all();
-        return $clients;
+        $clients = client::with('columns')->get();
+        return response()->json($clients);
+    }
+
+
+    public function getclientinfo($id)
+    {
+        // Fetch the columns with the associated client data based on the given ID
+        $column = column::where('client_id',$id)->get();
+
+        if ($column) {
+            return response()->json($column);
+        } else {
+            return response()->json(['error' => 'Call not found'], 404);
+        }
     }
 
     /**
@@ -27,7 +41,9 @@ class clientcontroller extends Controller
      */
     public function store(StoreclientRequest $request)
     {
-        //
+        $formfields = $request->validated();
+       $client = client::create($formfields);
+       return $client;
     }
 
     /**
@@ -70,7 +86,7 @@ class clientcontroller extends Controller
         $client->delete();
         return response()->json([
             'id' => $client->id,
-            'message' => 'Call Deleted Successfully',
+            'message' => 'client Deleted Successfully',
              'errors' =>[]
         ]);
     }

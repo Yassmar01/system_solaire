@@ -1,5 +1,5 @@
 import { ConfirmationNumber, Handshake, Person, PhoneMissed, QuestionAnswer } from "@mui/icons-material";
-import { Avatar, Box, Card, Chip, InputBase, Paper, Stack, styled, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
+import { Avatar, Box, Card, CardContent, Chip, InputBase, Paper, Stack, styled, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
 import { blue, blueGrey, orange, red } from "@mui/material/colors";
 
 import SearchIcon from '@mui/icons-material/Search';
@@ -53,7 +53,7 @@ function Details() {
         { label: 'Confirmé', status: 'Confirmé' },
         { label: 'En négociation de prix', status: 'En négociation de prix' },
         { label: 'Rendez-vous planifié', status: 'Rendez-vous planifié' },
-        { label: 'Veut après', status: 'Veut après' },
+
         { label: 'Injoignable', status: 'Injoignable' },
         { label: 'Annulé', status: 'Annulé' },
     ];
@@ -157,10 +157,9 @@ function Details() {
 
         if (searchTerm) {
             searchfilter = searchfilter.filter(f => {
-                return f.client.fullname.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase()) ||
-                    f.client.telephone.toString().includes(searchTerm) ||
-                    f.statue.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase()) ||
-                    f.client.province.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase())
+                return f.statue.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase()) ||
+                    f.remarque.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase()
+                    )
             })
             console.log(searchfilter)
             setFiltredcalls_search(searchfilter)
@@ -245,7 +244,7 @@ function Details() {
 
 
 
-                <Item> <Stack spacing={1}>
+                {/* <Item> <Stack spacing={1}>
                     <Typography color="success.dark" variant="overline">
                         TOTAL Deliveries
                         <Handshake sx={{ ml: 2, fontSize: 50, color: 'success.dark' }} />
@@ -253,7 +252,7 @@ function Details() {
                     <Typography variant="h4" sx={{ color: blueGrey[900] }}>50</Typography>
                 </Stack>
 
-                </Item>
+                </Item> */}
 
             </Stack>
             <Card sx={{ p: 2, width: '100%', mt: 4 }}>
@@ -266,7 +265,7 @@ function Details() {
                             sx={{ ml: 1, flex: 1 }}
 
                             onChange={handleChange}
-                            placeholder="search for clients / status"
+                            placeholder="search"
                             inputProps={{ 'aria-label': 'search for clients' }}
                         />
                     </Item>
@@ -283,11 +282,11 @@ function Details() {
                 <Table sx={{ minWidth: 650, mt: 5 }} aria-label="simple table">
                     <TableHead>
                         <TableRow>
-                            <TableCell >Fullname</TableCell>
-                            <TableCell align="center">Telephone</TableCell>
-                            <TableCell align="center">Province</TableCell>
-                            <TableCell align="center">Status</TableCell>
+
                             <TableCell align="center">Date</TableCell>
+                            <TableCell align="center">Status</TableCell>
+                            <TableCell align="center">Comment </TableCell>
+                            <TableCell align="center">Client</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -296,12 +295,40 @@ function Details() {
                                 key={row.id}
                                 sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                             >
-                                <TableCell>{row.client.fullname}</TableCell>
-                                <TableCell align="center">{row.client.telephone}</TableCell>
-                                <TableCell align="center">{row.client.province}</TableCell>
-                                <TableCell align="center">  <Chip label={row.statue} color="info" variant="outlined" /></TableCell>
 
                                 <TableCell align="center">{row.date}</TableCell>
+                                <TableCell align="center">  <Chip label={row.statue} color="info" variant="outlined" /></TableCell>
+                                <TableCell align="center">{row.remarque}</TableCell>
+
+                                <TableCell>
+                                    <Card>
+                                        <CardContent>
+
+                                            {row.client.columns.length > 0 ? (
+                                                row.client.columns.map((col) => (
+
+                                                    <div key={col.id} color="primary">
+                                                        <Typography
+                                                            gutterBottom variant="h7"
+                                                            component="b"
+                                                            sx={{ mr: 1, color: blue[500] }}
+                                                        >
+                                                            {col.column_name}:
+                                                        </Typography>
+
+                                                        {col.value}
+
+
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <span>No additional info</span>
+                                            )}
+
+                                        </CardContent>
+
+                                    </Card>
+                                </TableCell>
                             </TableRow>
                         ))) : <TableRow>
                             <TableCell colSpan={5} align="center">

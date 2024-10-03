@@ -27,7 +27,8 @@ class pointcontroller extends Controller
      */
     public function store(StorepointRequest $request)
     {
-        //
+        $validatedData = $request->validated();
+        return point::create($validatedData);
     }
 
     /**

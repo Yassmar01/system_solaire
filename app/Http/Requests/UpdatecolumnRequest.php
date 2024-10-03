@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class Storeetude_operationRequest extends FormRequest
+class UpdatecolumnRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -13,7 +13,7 @@ class Storeetude_operationRequest extends FormRequest
      */
     public function authorize()
     {
-        return true;
+        return false;
     }
 
     /**
@@ -24,12 +24,7 @@ class Storeetude_operationRequest extends FormRequest
     public function rules()
     {
         return [
-            'name_activity'=>'required',
-            'hectares'=>'required',
-
-            'date'=> 'required' ,
-            'client_id'=> 'required',
-            'chef_equipe_id'=> 'required' ,
+            //
         ];
-}
+    }
 }

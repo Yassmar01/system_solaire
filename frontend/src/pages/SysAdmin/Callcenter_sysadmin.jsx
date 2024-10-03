@@ -12,147 +12,109 @@ import TableRow from '@mui/material/TableRow';
 
 import Paper from '@mui/material/Paper';
 import { RemoveRedEye, Search } from '@mui/icons-material';
-import { TextField, Tooltip } from '@mui/material';
+import { TextField, Tooltip, Grid } from '@mui/material'; // Import Grid
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
-
-function createData(fullname, CIN, Email, Telephone, Confirmation_Rate, Statue) {
-    return {
-        fullname,
-        CIN,
-        Email,
-        Telephone,
-        Confirmation_Rate,
-        Statue,
-        history: [
-            {
-                date: '2024-01-05',
-                customerId: 'khalid',
-                amount: 3000,
-                Statue: 'Injoiagnable',
-                province: 'Drissa',
-
-
-            },
-            {
-                date: '2024-01-02',
-                customerId: 'Anonymous',
-                amount: 9000,
-                Statue: 'Confirmed',
-                province: 'EL Hajeb',
-            },
-        ],
-    };
-}
-function Row(props) {
-    const { row } = props;
-
-    return (
-        <React.Fragment>
-            <TableRow sx={{ '& > *': { borderBottom: 'unset' } }}>
-                <TableCell component="th" scope="row">
-                    {row.fullname}
-                </TableCell>
-                <TableCell align="center">{row.CIN}</TableCell>
-                <TableCell align="center">{row.Email}</TableCell>
-                <TableCell align="center">{row.Telephone}</TableCell>
-                <TableCell align="center">{row.Confirmation_Rate}</TableCell>
-                <TableCell>
-                    <Tooltip title="Details" placement="top" arrow>
-                        <IconButton
-                            aria-label="expand row"
-                            size="small"
-
-                        >
-                            <Link to={'/sysadmin/callcenter/Details'} target="_blank"><RemoveRedEye color="success" /></Link>
-
-
-                        </IconButton>
-                    </Tooltip>
-                </TableCell>
-            </TableRow>
-
-        </React.Fragment>
-    );
-}
-Row.propTypes = {
-    row: PropTypes.shape({
-        CIN: PropTypes.string.isRequired,
-        Telephone: PropTypes.string.isRequired,
-        Email: PropTypes.string.isRequired,
-        history: PropTypes.arrayOf(
-            PropTypes.shape({
-                amount: PropTypes.number.isRequired,
-                customerId: PropTypes.string.isRequired,
-                date: PropTypes.string.isRequired,
-                Statue: PropTypes.string.isRequired,
-            }),
-        ).isRequired,
-        fullname: PropTypes.string.isRequired,
-
-        Confirmation_Rate: PropTypes.number.isRequired,
-    }).isRequired,
-};
-
-const rows = [
-    createData('Fdoua alaoui', 'D67889', 'alaoui@zzz.com', '0765432311', 4.0),
-    createData('amira amira', 'D67889', 'alaoui@zzz.com', '0765432311', 4.3),
-    createData('xx yy', 'D67889', 'alaoui@zzz.com', '0765432311', 6.0),
-    createData('zz zzzzzz', 'D67889', 'alaoui@zzz.com', '0765432311', 4),
-    createData('slma salah', 'D67889', 'alaoui@zzz.com', '0765432311', 3),
-];
+import Accounts_management from '@/services/Accounts_management';
 
 export default function Callcenter_sysadmin() {
-
     const [searchTerm, setSearchTerm] = useState("");
-    const [filteredRows, setFilteredRows] = useState(rows);
-    const handelsearch = (event) => {
-        setSearchTerm(event.target.value)
+    const [agents, setAgents] = useState([]);
+    const [filteredRows, setFilteredRows] = useState(agents);
 
+    const handelsearch = (event) => {
+        setSearchTerm(event.target.value);
     }
 
     React.useEffect(() => {
+        Accounts_management.all('callcenter')
+            .then(({ data, status }) => {
+                if (status === 200) {
+                    //      console.log(data);
+                    setAgents(data);
+                    setFilteredRows(data);
+                }
+            }).catch(({ response }) => {
+                if (response) {
+                    console.log(response);
+                }
+            });
+    }, []);
 
-        let filtered = rows;
+    React.useEffect(() => {
+        let filtered = agents;
         if (searchTerm) {
             filtered = filtered.filter(f => {
-                return f.fullname.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase()) ||
-                    f.CIN.toString().includes(searchTerm)
-            })
+                return f.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    f.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    f.telephone.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    f.CIN.toString().includes(searchTerm);
+            });
         }
         setFilteredRows(filtered);
+    }, [searchTerm, agents]); // Also add 'agents' to the dependency array
 
-    }, [searchTerm]);
     return (
-        <>
-            <Box sx={{ display: 'flex', alignItems: 'flex-end' }} >
-                <Search sx={{ color: '#2e7d32', mr: 1, my: 0.5 }} />
-                <TextField id="search" color='success' label="Search" variant="standard" align="center" onChange={handelsearch} />
-            </Box>
-            <TableContainer component={Paper} sx={{ width: '1000px', mt: 5 }}>
-                <Table aria-label="collapsible table" >
-                    <TableHead>
-                        <TableRow>
-                            <TableCell >Fullname</TableCell>
-                            <TableCell align="center">CIN</TableCell>
-                            <TableCell align="center">Email</TableCell>
-                            <TableCell align="center">Telephone</TableCell>
-                            <TableCell align="center">Confirmation Rate (%)</TableCell>
-                            <TableCell />
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {filteredRows.length !== 0 ? (filteredRows.map((row) => (
-                            <Row key={row.fullname} row={row} />
-                        )) ): <TableRow>
-                            <TableCell colSpan={5} align="center">
-                                No items
-                            </TableCell>
-                        </TableRow>}
+        <Grid container spacing={2} justifyContent="center" sx={{ p: 2 }}>
+            <Grid item xs={12} md={6}>
+                <Box sx={{ display: 'flex', alignItems: 'flex-end' }} >
+                    <Search sx={{ color: '#2e7d32', mr: 1, my: 0.5 }} />
+                    <TextField
+                        id="search"
+                        color='success'
+                        label="Search"
+                        variant="standard"
+                        fullWidth // Make the input take full width
+                        onChange={handelsearch}
+                    />
+                </Box>
+            </Grid>
+            <Grid item xs={12}>
+                <TableContainer component={Paper} sx={{ width: { xs: '100%', md: '80%' }, mx: 'auto', mt: 5 }}>
+                    <Table aria-label="collapsible table">
+                        <TableHead>
+                            <TableRow>
+                                <TableCell>Fullname</TableCell>
+                                <TableCell align="center">CIN</TableCell>
+                                <TableCell align="center">Email</TableCell>
+                                <TableCell align="center">Telephone</TableCell>
+                                <TableCell />
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {filteredRows.length !== 0 ? (filteredRows.map((row, index) => (
+                                <TableRow key={index}> {/* Add a key prop to each TableRow */}
+                                    <TableCell component="th" scope="row">
+                                        {row.fullname}
+                                    </TableCell>
+                                    <TableCell align="center">{row.CIN}</TableCell>
+                                    <TableCell align="center">{row.email}</TableCell>
+                                    <TableCell align="center">{row.telephone}</TableCell>
+                                    <TableCell>
+                                        <Tooltip title="Details" placement="top" arrow>
+                                            <IconButton aria-label="expand row" size="small">
+                                                <Link
+                                                    to={`/sysadmin/callcenter/Details?agent=${encodeURIComponent(btoa(row.id))}`}
 
-                    </TableBody>
-                </Table>
-            </TableContainer>
-        </>
+                                                    target="_blank"
+                                                >
+                                                    <RemoveRedEye color="success" />
+                                                </Link>
+                                            </IconButton>
+                                        </Tooltip>
+                                    </TableCell>
+                                </TableRow>
+                            ))) : (
+                                <TableRow>
+                                    <TableCell colSpan={6} align="center">
+                                        No confirmers
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </Grid>
+        </Grid>
     );
 }

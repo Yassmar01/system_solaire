@@ -4,20 +4,17 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
-class etude_operation extends Model
+class column extends Model
 {
-    use HasFactory,SoftDeletes;
+    use HasFactory;
+
 
     protected $fillable = [
-        'name_activity',
-        'hectares',
-        'date' ,
-        'delivered',
-        'client_id',
-        'chef_equipe_id',
 
+  "client_id",
+ "column_name",
+ "value"
     ];
     protected $hidden = [
 
@@ -28,10 +25,5 @@ class etude_operation extends Model
     public function client()
     {
         return $this->belongsTo(Client::class);
-    }
-
-    public function point()
-    {
-        return $this->hasMany(point::class);
     }
 }

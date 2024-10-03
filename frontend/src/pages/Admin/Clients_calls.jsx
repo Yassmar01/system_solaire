@@ -1,12 +1,17 @@
-import { Alert, Autocomplete, Box, Button, Card, Checkbox, Chip, FormControlLabel, IconButton, InputBase, Paper, Snackbar, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Toolbar, Typography, alpha, styled } from '@mui/material';
+import { Alert, Autocomplete, Box, Button, Card, CardContent, Checkbox, Chip, CircularProgress, FormControlLabel, IconButton, InputBase, Paper, Snackbar, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Toolbar, Typography, alpha, styled } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import React, { useEffect, useState } from 'react';
 import { ChangeCircleOutlined } from '@mui/icons-material';
-import { red } from '@mui/material/colors';
+import { blue, green, red } from '@mui/material/colors';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import PropTypes from 'prop-types';
 import TablePagination from '@mui/material/TablePagination';
 import Accounts_management from '@/services/Accounts_management';
+import { axiosClient } from '@/api/axios';
+import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
+import { DemoContainer } from '@mui/x-date-pickers/internals/demo';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
 
 const Item = styled(Paper)(({ theme }) => ({
     backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
@@ -61,7 +66,9 @@ const Clients_calls = () => {
 
 
     const [filteredagents, setFilteredagents] = useState([]);
-    const [searchTerm, setSearchTerm] = useState("");
+
+    const [selectedstatue, setSelectedstatue] = useState();
+
     const [firstagent, setFirstagent] = useState(null);
     const [secondagent, setSecondagent] = useState(null);
     const [isSwitchOn, setIsSwitchOn] = useState(false);
@@ -76,10 +83,42 @@ const Clients_calls = () => {
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [agents, setAgents] = useState([]);
 
-    const handleChange = (event) => {
-        setSearchTerm(event.target.value);
-    };
+    const [checkedcalls, setCheckedcalls] = useState([]);
 
+
+    const [loading, setLoading] = useState(false);
+
+    const [selectedDate, setSelectedDate] = useState(dayjs());
+    const handleDateChange = (event) => {
+        setSelectedDate(event);
+
+    }
+
+    useEffect(() => {
+        console.log("Updated checked calls:", checkedcalls);
+    }, [checkedcalls]);
+    const status_searchOptions = [
+
+
+        { value: 'Injoignable', label: 'Injoignable' },
+        { value: 'Rendez-vous planifié', label: 'Rendez-vous planifié' },
+        { value: 'Annulé', label: 'Annulé' },
+        { value: 'En négociation de prix', label: 'En négociation de prix' },
+        { value: 'Confirmé', label: 'Confirmé' },
+
+    ];
+
+    const handleStatus_serach_Change = (event, newvalue) => {
+
+        if (newvalue) {
+
+            setSelectedstatue(newvalue.value)
+        } else {
+            setSelectedstatue("")
+        }
+
+
+    };
     const handelexchange = (event) => {
         setIsSwitchOn(event.target.checked);
     };
@@ -100,11 +139,76 @@ const Clients_calls = () => {
         setOpenDialog(false);
     };
 
-    const handleConfirmDialog = () => {
-        // Confirm affectation of clients
-        setOpen(true);
-        setOpenDialog(false);
+    const fetchUsers = async () => {
+
+        Accounts_management.all('calls-clients')
+            .then(({ data, status }) => {
+                if (status === 200) {
+
+                    setCalls_clients(data)
+                    const formattedDate = dayjs(selectedDate).format('YYYY-MM-DD');
+
+                    let filtered = data;
+
+                    filtered = filtered.filter(f => f.call_center_id === firstagent && f.date === formattedDate);
+
+                    setFilteredRows(filtered);
+
+
+                }
+            }).catch(({ response }) => {
+                if (response) {
+                    console.log(response);
+                }
+            });
     };
+
+    const handleConfirmDialog = async () => {
+        setLoading(true);
+        try {
+            // Confirm affectation of clients
+            const updatePromises = checkedcalls.map(async (row) => {
+                const { client, ...call } = row;
+                call.call_center_id = secondagent;
+
+                //  Accounts_management.edit is an async function
+                const response = await Accounts_management.edit(row.id, call, 'call');
+                return response;
+            });
+            // Example of a loading spinner
+
+            // Wait for all updates to complete
+            const results = await Promise.all(updatePromises);
+
+            // Check if all requests were successful
+            if (results.every(({ status }) => status === 200)) {
+                swal({
+                    title: "Success!",
+                    text: "Calls have been affected successfully.",
+                    icon: "success",
+                    buttons: false,
+                    timer: 3000, // Show the message for 2 seconds
+                });
+
+                setOpenDialog(false);  // Close the dialog
+                setSelected([]);       // Clear selected rows
+                fetchUsers();           // Refresh table data
+                handleClose(); // Close any related UI components
+
+            }
+        } catch (error) {
+            console.log(error.response?.data || error.message);
+            swal({
+                title: "Error",
+                text: "An error occurred while affecting the calls.",
+                icon: "error",
+                buttons: true,
+            });
+        } finally {
+            setLoading(false); // Stop loading indicator
+        }
+    };
+
 
     const handleClose = (event, reason) => {
         if (reason === 'clickaway') {
@@ -126,7 +230,7 @@ const Clients_calls = () => {
             Accounts_management.all('calls-clients')
                 .then(({ data, status }) => {
                     if (status === 200) {
-                        console.log(data);
+                        console.log('data', data);
                         setCalls_clients(data)
 
 
@@ -161,35 +265,72 @@ const Clients_calls = () => {
 
 
 
+
         if (firstagent) {
 
+            const formattedDate = dayjs(selectedDate).format('YYYY-MM-DD');
 
-            filtered = filtered.filter(f => f.call_center_id === firstagent);
+            filtered = filtered.filter(f => f.call_center_id === firstagent && f.date === formattedDate);
 
             sagents = sagents.filter(f => f.id !== firstagent);
             setFilteredRows(filtered);
+
         } else {
             setFilteredRows([]);
         }
 
-        if (searchTerm) {
-            filtered = filtered.filter(f =>
-                f.client.fullname.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase()) ||
-                f.client.province.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase()) ||
-                f.statue.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase())
+        setFilteredagents(sagents);
+    }, [firstagent, secondagent]);
+
+
+    useEffect(() => {
+
+        let filtered = calls_clients;
+
+
+
+        if (selectedDate) {
+            const formattedDate = dayjs(selectedDate).format('YYYY-MM-DD');
+            // filtered = filtered.filter(row => row.date === formattedDate);
+            filtered = filtered.filter(f => f.call_center_id === firstagent && f.date === formattedDate);
+
+            console.log('filtered', filtered);
+
+            setFilteredRows(filtered);
+
+        }
+
+    }, [selectedDate]);
+
+    useEffect(() => {
+
+        let filtered = calls_clients;
+        const formattedDate = dayjs(selectedDate).format('YYYY-MM-DD');
+        if (selectedstatue) {
+
+            filtered = filtered.filter(f => f.call_center_id === firstagent
+                && f.date === formattedDate
+                && f.statue === selectedstatue
             );
+
+            setFilteredRows(filtered);
+        } else {
+
+
+            filtered = filtered.filter(f => f.call_center_id === firstagent && f.date === formattedDate);
             setFilteredRows(filtered);
         }
 
-
-        setFilteredagents(sagents);
-    }, [firstagent, searchTerm, secondagent]);
+    }, [selectedstatue]);
 
     const handleSelectAllClick = (event) => {
         if (event.target.checked) {
             const newSelected = visibleRows.map((row, index) => page * rowsPerPage + index);
             setSelected(newSelected);
+            setCheckedcalls(visibleRows);
             return;
+        } else {
+            setCheckedcalls([]);
         }
         setSelected([]);
 
@@ -208,27 +349,7 @@ const Clients_calls = () => {
         setDense(event.target.checked);
     };
 
-    const handleClick = (event, id) => {
-        const selectedIndex = selected.indexOf(id);
 
-        let newSelected = [];
-
-        if (selectedIndex === -1) {
-            newSelected = newSelected.concat(selected, id);
-        } else if (selectedIndex === 0) {
-            newSelected = newSelected.concat(selected.slice(1));
-        } else if (selectedIndex === selected.length - 1) {
-            newSelected = newSelected.concat(selected.slice(0, -1));
-        } else if (selectedIndex > 0) {
-            newSelected = newSelected.concat(
-                selected.slice(0, selectedIndex),
-                selected.slice(selectedIndex + 1),
-            );
-        }
-
-        setSelected(newSelected);
-
-    };
 
     const isSelected = (id) => selected.indexOf(id) !== -1;
 
@@ -272,12 +393,12 @@ const Clients_calls = () => {
         const { onSelectAllClick, numSelected, rowCount } = props;
 
         const headCells = [
-            { id: 'Fullname', numeric: false, disablePadding: true, label: 'Fullname' },
-            { id: 'Telephone', numeric: true, disablePadding: false, label: 'Phone Number' },
-            { id: 'Province', numeric: true, disablePadding: false, label: 'Province' },
+
             { id: 'Status', numeric: true, disablePadding: false, label: 'Status' },
             { id: 'Comments', numeric: true, disablePadding: false, label: 'Comments' },
-            { id: 'Date', numeric: true, disablePadding: false, label: 'Date' }
+            { id: 'Date', numeric: true, disablePadding: false, label: 'Date' },
+            { id: 'Client', numeric: true, disablePadding: false, label: 'Client' }
+
         ];
 
         return (
@@ -319,6 +440,7 @@ const Clients_calls = () => {
                     <Autocomplete
                         sx={{ ml: 10, flex: 1, mb: 1.5 }}
                         id="highlights-demo"
+                        isOptionEqualToValue={(option, value) => option.fullname === value.fullname}
                         onChange={(event, newValue) => {
                             if (newValue) {
                                 setFirstagent(newValue.id);
@@ -333,18 +455,33 @@ const Clients_calls = () => {
                         )}
                     />
                 </Box>
-                <Item sx={{ display: 'flex', alignItems: 'center', width: 400, height: 55 }}>
-                    <SearchIcon />
-                    <InputBase
-                        sx={{ ml: 1, flex: 1 }}
-                        onChange={handleChange}
-                        placeholder="search for clients / Calls"
-                        inputProps={{ 'aria-label': 'search for clients' }}
+                <Box sx={{ display: 'flex', alignItems: 'center', width: '20%', height: 60 }}>
+                    <Autocomplete
+                        sx={{ flex: 1, mb: 1.5 }}
+                        id="status"
+                        name="status"
+                        options={status_searchOptions}
+                        getOptionLabel={(option) => option.label}
+
+                        renderInput={(params) => (
+                            <TextField {...params} label="Choose status" margin="normal" color="success"
+
+
+                            />
+                        )}
+                        onChange={(event, newValue) => handleStatus_serach_Change(event, newValue)}
                     />
+                </Box>
+                <Item sx={{ backgroundColor: 'transparent', boxShadow: 'none', display: 'flex', alignItems: 'center', width: 400, height: 57 }}>
+                    <LocalizationProvider dateAdapter={AdapterDayjs} >
+                        <DemoContainer components={['DatePicker']} >
+                            <DatePicker label="Search by date" defaultValue={selectedDate} onChange={handleDateChange} />
+                        </DemoContainer>
+                    </LocalizationProvider>
                 </Item>
             </Stack>
             <Stack direction="row" sx={{ mt: 5 }}>
-                <TableContainer component={Paper} sx={{ width: '80%', height: 'auto' }}>
+                <TableContainer component={Paper} sx={{ width: '100%', height: 'auto' }}>
                     <EnhancedTableToolbar
                         numSelected={selected.length}
                         agents={agents}
@@ -362,33 +499,105 @@ const Clients_calls = () => {
                                 const isItemSelected = isSelected(globalIndex);
                                 const labelId = `enhanced-table-checkbox-${globalIndex}`;
 
+
+
+                                const handleCheckboxChange = (event) => {
+
+
+                                    const selectedIndex = selected.indexOf(globalIndex);
+
+                                    let newSelected = [];
+
+                                    if (selectedIndex === -1) {
+                                        newSelected = newSelected.concat(selected, globalIndex);
+                                    } else if (selectedIndex === 0) {
+                                        newSelected = newSelected.concat(selected.slice(1));
+                                    } else if (selectedIndex === selected.length - 1) {
+                                        newSelected = newSelected.concat(selected.slice(0, -1));
+                                    } else if (selectedIndex > 0) {
+                                        newSelected = newSelected.concat(
+                                            selected.slice(0, selectedIndex),
+                                            selected.slice(selectedIndex + 1),
+                                        );
+                                    }
+
+                                    setSelected(newSelected);
+
+
+
+
+                                    if (event.target.checked) {
+                                        // Add the row to checkedcalls array if it's checked
+                                        setCheckedcalls((prevCheckedcalls) => [...prevCheckedcalls, row]);
+                                    } else {
+                                        // Remove the row from checkedcalls array if it's unchecked
+                                        setCheckedcalls((prevCheckedcalls) => prevCheckedcalls.filter(c => c !== row));
+                                    }
+
+                                    console.log(checkedcalls);
+
+                                };
+
+
+
                                 return (
                                     <TableRow
-                                        hover
-                                        onClick={(event) => handleClick(event, globalIndex)}
+
                                         role="checkbox"
                                         aria-checked={isItemSelected}
                                         tabIndex={-1}
                                         key={globalIndex}
                                         selected={isItemSelected}
-                                        sx={{ cursor: 'pointer' }}
+
                                     >
-                                        <TableCell padding="checkbox">
+                                        <TableCell padding="checkbox" >
                                             <Checkbox
                                                 color="success"
+
                                                 checked={isItemSelected}
                                                 inputProps={{
                                                     'aria-labelledby': labelId,
                                                 }}
-
+                                                onChange={(event) => {
+                                                    //  event.stopPropagation();
+                                                    handleCheckboxChange(event);
+                                                }}
                                             />
                                         </TableCell>
-                                        <TableCell align="center" >{row.client.fullname}</TableCell>
-                                        <TableCell align="center">{row.client.telephone}</TableCell>
-                                        <TableCell align="center">{row.client.province}</TableCell>
-                                        <TableCell align="center"> <Chip label={row.statue} color="success" variant="outlined" /></TableCell>
+
+
+                                        <TableCell align="center"> <Chip label={row.statue} color="info" variant="outlined" /></TableCell>
                                         <TableCell align="center">{row.remarque}</TableCell>
                                         <TableCell align="center">{row.date}</TableCell>
+                                        <TableCell>
+                                            <Card>
+                                                <CardContent>
+
+                                                    {row.client.columns.length > 0 ? (
+                                                        row.client.columns.map((col) => (
+
+                                                            <div key={col.id} color="primary">
+                                                                <Typography
+                                                                    gutterBottom variant="h7"
+                                                                    component="b"
+                                                                    sx={{ mr: 1, color: blue[500] }}
+                                                                >
+                                                                    {col.column_name}:
+                                                                </Typography>
+
+                                                                {col.value}
+
+
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <span>No additional info</span>
+                                                    )}
+
+                                                </CardContent>
+
+                                            </Card>
+                                        </TableCell>
                                     </TableRow>
                                 );
                             }) : (
@@ -421,20 +630,20 @@ const Clients_calls = () => {
 
                 </TableContainer>
                 <Box sx={{ ml: 5, width: '20%' }}>
-                    <FormControlLabel control={<Switch color='success' onChange={handelexchange}  />} label="Clients exchange ?" />
+                    <FormControlLabel control={<Switch color='success' onChange={handelexchange} />} label="Clients exchange ?" />
                     {isSwitchOn && (
                         <>
                             <Autocomplete
+                                id="highlights-demo"
                                 onChange={(event, newValue) => {
                                     if (newValue) {
-                                        setSecondagent(newValue.CIN);
+                                        setSecondagent(newValue.id);
                                     } else {
                                         setSecondagent(null);
                                     }
                                 }}
-                                id="highlights-demo"
-                                value={filteredagents.find(agent => agent.CIN === secondagent) || null}
-                                sx={{ width: 'auto' ,height:'auto' }}
+                                value={filteredagents.find(agent => agent.id === secondagent) || null}
+                                sx={{ width: 'auto', height: 'auto' }}
                                 options={filteredagents}
                                 getOptionLabel={(option) => option.fullname || ""}
                                 renderInput={(params) => (
@@ -461,6 +670,8 @@ const Clients_calls = () => {
                                 handleConfirm={handleConfirmDialog}
                                 title="Confirm Clients Exchange"
                                 message="Are you sure you want to Affect those Clients?"
+                                loading={loading}
+                                loadingmessage="Updating"
                             />
                             <Snackbar open={open} autoHideDuration={6000} onClose={handleClose}>
                                 <Alert

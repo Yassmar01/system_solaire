@@ -13,7 +13,7 @@ class StorechargeRequest extends FormRequest
      */
     public function authorize()
     {
-        return false;
+        return true;
     }
 
     /**
@@ -28,13 +28,9 @@ class StorechargeRequest extends FormRequest
         'label'=>'required|max:50',
         'quantity'=>'required',
         'invoice'=>'required',
+        'chef_equipe_id' => 'required'
 
         ];
-
-
-
-      
-
 
     }
 }

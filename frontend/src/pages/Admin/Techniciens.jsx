@@ -53,6 +53,8 @@ function Techniciens() {
             filtered = filtered.filter(f => {
                 return f.fullname.toLocaleLowerCase().includes(search.toLocaleLowerCase()) ||
                     f.CIN.toLocaleLowerCase().includes(search.toLocaleLowerCase()) ||
+                    f.email.toLocaleLowerCase().includes(search.toLocaleLowerCase()) ||
+
                     f.telephone.toLocaleLowerCase().includes(search.toLocaleLowerCase())
             })
             setFilteredRows(filtered);

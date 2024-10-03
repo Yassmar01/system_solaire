@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\call;
 use App\Models\call_center;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class callscontroller extends Controller
 {
@@ -15,7 +16,7 @@ class callscontroller extends Controller
      */
     public function index()
     {
-       // $calls = call::all();
+        // $calls = call::all();
         $calls = Call::orderBy('date', 'asc')->get();
         return response()->json($calls);
     }
@@ -28,7 +29,12 @@ class callscontroller extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validatedData = $request->validate([
+            'call_center_id' => 'required',
+            'client_id' => 'required',
+
+        ]);
+        return call::create($validatedData);
     }
 
     /**
@@ -46,21 +52,58 @@ class callscontroller extends Controller
     public function client_calls()
     {
         // Fetch calls with the associated client data
-        $calls = Call::with('client')->get();
+        $calls = Call::with(['client.columns'])->get();
+
         return response()->json($calls);
     }
 
     public function getCallById($id)
-{
-    // Fetch the call with the associated client data based on the given ID
-    $call = call_center::with('call')->find($id);
+    {
+        // Fetch the call with the associated client data based on the given ID
+        $call = call::with('client.columns')
+        ->where( 'call_center_id',$id)
+        ->whereNot('statue', 'New')
+        ->get();
 
-    if ($call) {
-        return response()->json($call);
-    } else {
-        return response()->json(['error' => 'Call not found'], 404);
+        if ($call) {
+            return response()->json($call);
+        } else {
+            return response()->json(['error' => 'Call not found'], 404);
+        }
     }
-}
+
+
+
+
+    public function getCalls($id)
+    {
+        // Fetch the call with the associated client data based on the given ID
+        $calls = call::with('client.columns')
+        ->where('statue','New')
+
+        ->where('call_center_id',$id)->get();
+
+        if ($calls) {
+            return response()->json($calls);
+        } else {
+            return response()->json(['error' => 'Call not found'], 404);
+        }
+    }
+
+
+    public function message_callcenter($id)
+    {
+        // Fetch the call with the associated client data based on the given ID
+        $calls = call::whereNot('statue','New')
+
+        ->where('call_center_id',$id)->get();
+
+        if ($calls) {
+            return response()->json($calls);
+        } else {
+            return response()->json(['error' => 'Call not found'], 404);
+        }
+    }
     /**
      * Update the specified resource in storage.
      *
@@ -70,13 +113,26 @@ class callscontroller extends Controller
      */
     public function update(Request $request, call $call)
     {
-        $call->update($request->validated());
 
-    return response()->json([
-        'callcenter' => $call,
-        'message' =>  'Call Updated Successfully',
-         'errors' =>[]
-    ]);
+        $validatedData = $request->validate([
+            'call_center_id' => '',
+            'client_id' => '',
+            "statue" => 'required',
+            "delivered" => '',
+            "remarque" => 'required',
+            "date" => '',
+            "RDV_call" => ''
+
+
+
+        ]);
+        $call->update($validatedData);
+
+        return response()->json([
+            'call' => $call,
+            'message' =>  'call Updated Successfully',
+            'errors' => []
+        ]);
     }
 
     /**
@@ -91,7 +147,7 @@ class callscontroller extends Controller
         return response()->json([
             'id' => $call->id,
             'message' => 'Call Deleted Successfully',
-             'errors' =>[]
+            'errors' => []
         ]);
     }
 }

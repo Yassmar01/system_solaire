@@ -19,6 +19,14 @@ class operationscontroller extends Controller
         return $operations;
     }
 
+
+    public function operationsCount()
+    {
+        $operations = etude_operation::all()->where('delivered',1)->count()
+        ;
+        return $operations;
+    }
+
     /**
      * Store a newly created resource in storage.
      *
@@ -27,7 +35,9 @@ class operationscontroller extends Controller
      */
     public function store(Storeetude_operationRequest $request)
     {
-        //
+        $formfields = $request->validated();
+
+       return etude_operation::create($formfields);
     }
 
 
@@ -35,7 +45,22 @@ class operationscontroller extends Controller
     {
       //  $call = call_center::with('call')->find($id);
 
-        $operations = etude_operation::with(['client','point'])->where('chef_equipe_id', $id)->get();
+        $operations = etude_operation::with(['client.columns','point'])
+         ->where('delivered',1)
+        ->where('chef_equipe_id', $id)->get();
+
+        return response()->json($operations);
+    }
+
+
+
+    public function Affected_operations($id)
+    {
+      //  $call = call_center::with('call')->find($id);
+
+        $operations = etude_operation::with(['client.columns','point'])
+         ->where('delivered',0)
+        ->where('chef_equipe_id', $id)->get();
 
         return response()->json($operations);
     }
@@ -46,31 +71,44 @@ class operationscontroller extends Controller
      * @param  \App\Models\etude_operation  $etude_operation
      * @return \Illuminate\Http\Response
      */
-    public function show(etude_operation $etude_operation)
+    public function show(etude_operation $etudeoperation)
     {
-      return $etude_operation;
+      return $etudeoperation;
     }
 
     /**
      * Update the specified resource in storage.
      *
      * @param  \App\Http\Requests\Updateetude_operationRequest  $request
-     * @param  \App\Models\etude_operation  $etude_operation
+     * @param  \App\Models\etude_operation  $operation
      * @return \Illuminate\Http\Response
      */
-    public function update(Updateetude_operationRequest $request, etude_operation $etude_operation)
+    public function update(Updateetude_operationRequest $request, etude_operation $operation)
     {
-        //
+        $operation->update($request->validated());
+
+        return response()->json([
+            'opration' => $operation,
+            'message' =>  'opration Updated Successfully',
+             'errors' =>[]
+        ]);
     }
 
     /**
      * Remove the specified resource from storage.
      *
-     * @param  \App\Models\etude_operation  $etude_operation
+     * @param  \App\Models\etude_operation  $operation
      * @return \Illuminate\Http\Response
      */
-    public function destroy(etude_operation $etude_operation)
+    public function destroy(etude_operation $operation)
     {
-        //
+        $operation->delete();
+        return response()->json([
+            'id' => $operation->id,
+            'message' =>  $operation->name_activity .' Deleted Successfully',
+             'errors' =>[
+
+             ]
+        ]);
     }
 }

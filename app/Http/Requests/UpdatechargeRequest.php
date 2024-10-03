@@ -13,7 +13,7 @@ class UpdatechargeRequest extends FormRequest
      */
     public function authorize()
     {
-        return false;
+        return true;
     }
 
     /**
@@ -24,7 +24,11 @@ class UpdatechargeRequest extends FormRequest
     public function rules()
     {
         return [
-            //
+            'chef_equipe_id' => 'required|integer',
+        'quantity' => 'required|integer',
+        'label' => 'required',
+        'prix' => 'required',
+        'invoice' => 'file|mimes:png,jpg,jpeg,pdf'
         ];
     }
 }

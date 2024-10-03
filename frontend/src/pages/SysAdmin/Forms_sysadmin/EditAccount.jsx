@@ -15,13 +15,12 @@ const formSchema = z.object({
     fullname: z.string().min(2, "Fullname is required").max(50),
     // CIN: z.string().min(2, "CIN is required").max(50).optional(),
     // telephone: z.string().refine((value) => /^(?:[0-9-()/.]\s?){6,10}[0-9]{1}$/.test(value), "Please specify a valid phone number .").optional(),
-    accountType: z.string(),
-    telephone: z.string().optional(),
+    role: z.string(),
     CIN: z.string().optional(),
-
+    telephone: z.string().optional(),
     province: z.string().optional(),
 }).refine(data => {
-    if (data.accountType !== 'sysadmin') {
+    if (data.role !== 'sysadmin') {
         return data.CIN;
     }
     return true;
@@ -29,7 +28,7 @@ const formSchema = z.object({
     message: " CIN is required ",
     path: ["CIN"],
 }).refine(data => {
-    if (data.accountType !== 'sysadmin') {
+    if (data.role !== 'sysadmin') {
         return data.telephone;
     }
     return true;
@@ -38,7 +37,7 @@ const formSchema = z.object({
     path: ["telephone"],
 })
     .refine(data => {
-        if (data.accountType === 'chefequipe') {
+        if (data.role === 'chefequipe') {
             return data.province;
         }
         return true;
@@ -48,18 +47,12 @@ const formSchema = z.object({
     });
 
 
-
-export default function Register_sysadmin({ refetch }) {
+export default function EditAccount({ data, handleClose, refetch }) {
     const form = useForm({
         resolver: zodResolver(formSchema),
+        defaultValues: data
     });
 
-
-    const options = [
-        { value: 'chefequipe', label: 'Chef Equipe' },
-        { value: 'callcenter', label: 'Call Center' }
-
-    ];
 
 
 
@@ -85,7 +78,7 @@ export default function Register_sysadmin({ refetch }) {
     const [selectedProvince, setSelectedProvince] = useState(null);
     const [provinceKey, setProvinceKey] = useState(0);
     const [open, setOpen] = useState(false);
-    const handleClose = (event, reason) => {
+    const handleClosemessage = (event, reason) => {
         if (reason === 'clickaway') {
             return;
         }
@@ -94,18 +87,26 @@ export default function Register_sysadmin({ refetch }) {
     };
 
     const onSubmit = async values => {
+        console.log(values);
 
-        await Accounts_management.create(values)
+        const response = await Accounts_management.edit(data.id, values, data.role)
             .then(
                 ({ data, status }) => {
-                    if (status === 201) {
-                        setOpen(true)
-                        refetch()
+                    if (status === 200) {
+                        handleClose()
+
+                        swal({
+                            title: "Success!",
+                            text: values.fullname + " information has been updated successfully.",
+                            icon: "success",
+                            buttons: false,
+                            timer: 2000, // Show the message for 2 seconds
+                        })
+                        refetch();
+
                     }
                 })
-            .then(() => {
-                refetch()
-            })
+
             .catch(({ response }) => {
                 if (response && response.data && response.data.errors) {
                     const errors = response.data.errors;
@@ -116,20 +117,19 @@ export default function Register_sysadmin({ refetch }) {
                         });
                     });
                 }
-
             })
     };
 
     return (
         <>
-            <Snackbar open={open} autoHideDuration={6000} onClose={handleClose}>
+            <Snackbar open={open} autoHideDuration={6000} onClose={handleClosemessage}>
                 <Alert
-                    onClose={handleClose}
+                    onClose={handleClosemessage}
                     severity="success"
                     variant="filled"
                     sx={{ width: '100%' }}
                 >
-                    Account Created with success !
+                    Account Updated with success !
                 </Alert>
             </Snackbar>
             <Container component="main" maxWidth="xs">
@@ -138,43 +138,15 @@ export default function Register_sysadmin({ refetch }) {
                     <Box component="form" noValidate sx={{ mt: 3 }} onSubmit={form.handleSubmit(onSubmit)}>
                         <Grid container spacing={2}>
                             <Grid item xs={12}>
-                                <Controller
-                                    name="accountType"
-                                    id="accountType"
-                                    control={form.control}
-                                    render={({ field }) => (
-                                        <Autocomplete
-                                            {...field}
-                                            options={options}
-                                            getOptionLabel={(option) => option.label}
-                                            isOptionEqualToValue={(option, value) => option.value === value.value}
-                                            onChange={(event, newValue) => {
-                                                field.onChange(newValue?.value || "");
-                                                setSelectedOption(newValue);
 
-                                                form.resetField('region');
-                                                form.resetField('province');
-                                                // set option province []
-                                                selectedRegion ? selectedRegion.province = [] : ""
 
-                                            }}
-                                            renderInput={(params) => (
-                                                <TextField {...params} label="Choose Account Type"
-                                                    margin="normal" color="success"
-                                                    error={!!form.formState.errors.accountType}
-                                                    helperText={form.formState.errors.accountType?.message} />
-                                            )}
-                                        />
-                                    )}
-                                />
-                                {/* {selectedOption && selectedOption.value === "chef_equipe" && ( */}
-                                {form.watch("accountType") === "chefequipe" && (
+                                {data.role === "chefequipe" && (
                                     <>
                                         <Controller
                                             name="region"
                                             id="region"
-
                                             control={form.control}
+
                                             render={({ field }) => (
                                                 <Autocomplete
                                                     {...field}
@@ -201,6 +173,7 @@ export default function Register_sysadmin({ refetch }) {
                                         <Controller
                                             name="province"
                                             id="province"
+
                                             control={form.control}
                                             render={({ field }) => (
                                                 <Autocomplete
@@ -211,7 +184,6 @@ export default function Register_sysadmin({ refetch }) {
                                                     getOptionLabel={(option) => option}
                                                     onChange={(event, newValue) =>
                                                         field.onChange(newValue || "")
-
                                                     }
 
                                                     renderInput={(params) => (
@@ -227,7 +199,7 @@ export default function Register_sysadmin({ refetch }) {
                                     </>
                                 )}
                             </Grid>
-                            <Grid item xs={12}>
+                            <Grid item xs={12} sm={6}>
                                 <TextField
 
                                     autoComplete="given-name"
@@ -243,7 +215,8 @@ export default function Register_sysadmin({ refetch }) {
                                 />
                             </Grid>
 
-                            <Grid item xs={12} >
+
+                            <Grid item xs={12} sm={6}>
                                 <TextField
                                     required
                                     fullWidth
@@ -271,6 +244,8 @@ export default function Register_sysadmin({ refetch }) {
                                     helperText={form.formState.errors.telephone?.message}
                                 />
                             </Grid>
+
+
 
                             <Grid item xs={12}>
                                 <TextField
@@ -312,9 +287,9 @@ export default function Register_sysadmin({ refetch }) {
                             disabled={form.formState.isSubmitting} // Disable button during submission
                         >
                             <PersonAdd sx={{ mr: 1 }} />
-                            {form.formState.isSubmitting ? <Loader className="animate-spin" /> : "Add"}
+                            {/* {isSubmitting && <Loader className="position-absolute end-5 animate-spin" />} */}
+                            {form.formState.isSubmitting ? <Loader className="animate-spin" /> : "Edit"}
                         </Button>
-
                     </Box>
                 </Box>
             </Container>

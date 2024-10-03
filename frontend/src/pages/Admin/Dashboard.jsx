@@ -26,15 +26,20 @@ const groupByMonth = (data) => {
         }
 
         // Increment counts based on your logic
-        result[key].Calls += 1;
+
+
+        if (call.statue !== 'New') {
+            result[key].Calls += 1;
+
+        }
         if (call.statue === 'Confirmé') {
             result[key].Confirmation += 1;
 
         }
-        if (call.delivered === 1) {
-            result[key].Delivery += 1;
+        // if (call.delivered === 1) {
+        //     result[key].Delivery += 1;
 
-        }
+        // }
 
     });
 
@@ -54,16 +59,16 @@ export default function Dashboard() {
         setLoading(true);
         Accounts_management.all('call')
             .then(({ data, status }) => {
-                console.log(data)
                 if (status === 200) {
                     const result = groupByMonth(data)
+                    //    console.log(result)
 
                     result.map((x) => {
                         const date = new Date(dayjs());
                         const month = date.toLocaleString('default', { month: 'short' })
 
                         if (month === x.name) {
-                            setDelevery(x.Delivery);
+
                             setSales(x.Calls);
                             setConfirmations(x.Confirmation);
                         }
@@ -82,7 +87,23 @@ export default function Dashboard() {
     }, []);
 
 
+    useEffect(() => {
 
+        Accounts_management.all('operationsCount')
+            .then(({ data, status }) => {
+                if (status === 200) {
+
+                    //   console.log('operationsCount', data)
+                    setDelevery(data);
+                }
+            }).catch(({ response }) => {
+                if (response) {
+                    console.log(response);
+                }
+
+            });
+
+    }, []);
 
     return (
 
@@ -92,16 +113,16 @@ export default function Dashboard() {
                     <Box sx={{ flexGrow: 1 }}>
                         <Grid container spacing={3}>
                             <Grid item xs>
-                                <Skeleton variant="rectangular" width='100%' height={160}  />
+                                <Skeleton variant="rectangular" width='100%' height={160} />
                             </Grid>
                             <Grid item xs>
                                 <Skeleton variant="rectangular" width='100%' height={160} />
                             </Grid>
                             <Grid item xs>
-                                <Skeleton variant="rectangular" width='100%' height={160}  />
+                                <Skeleton variant="rectangular" width='100%' height={160} />
                             </Grid>
                         </Grid>
-                        <Skeleton variant="rectangular" width='100%' height={350}  sx={{ mt: 2 }} />
+                        <Skeleton variant="rectangular" width='100%' height={350} sx={{ mt: 2 }} />
                     </Box>
                 </Container>
             ) : (

@@ -1,5 +1,5 @@
 import { CallMissed, Clear, ConfirmationNumber, Handshake, MissedVideoCall, MonetizationOn, Paid, Payments, Person, PhoneMissed, RemoveRedEye, Savings, Terrain } from "@mui/icons-material";
-import { Avatar, Card, IconButton, InputBase, Table, Paper, Stack, styled, Button, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, Tooltip, Collapse, Box } from "@mui/material";
+import { Avatar, Card, IconButton, InputBase, Table, Paper, Stack, styled, Button, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, Tooltip, Collapse, Box, CardContent } from "@mui/material";
 import { blue, blueGrey, green, orange, red } from "@mui/material/colors";
 import SearchIcon from '@mui/icons-material/Search';
 import React, { useEffect, useState } from "react";
@@ -34,6 +34,26 @@ function formatDate(dateString) {
 function Row(props) {
     const { row, point } = props;
     const [open, setOpen] = React.useState(false);
+    const [toutalprice, setToutalprice] = React.useState(0);
+
+    useEffect(() => {
+
+        let t = 0
+        let inc = 0
+        point.map(
+            (item, index) => {
+
+
+                t = t + item.price
+            }
+
+        )
+        inc = inc + t
+        setToutalprice(t)
+
+
+
+    }, [])
 
 
     return (
@@ -61,13 +81,49 @@ function Row(props) {
                 </TableCell>
 
 
-                <TableCell align="center">{row.client.fullname}</TableCell>
+                <TableCell align="center">{row.date}</TableCell>
 
-                <TableCell align="center">{row.client.telephone}</TableCell>
-                <TableCell align="center">{row.client.province}</TableCell>
+
                 <TableCell align="center">{row.name_activity}</TableCell>
-                <TableCell align="center">{row.count_points}</TableCell>
-                <TableCell align="center">{row.prix_etude}</TableCell>
+                <TableCell align="center">{row.hectares}</TableCell>
+
+                <TableCell align="center">{point.length}</TableCell>
+                <TableCell align="center">{toutalprice}</TableCell>
+                <TableCell>
+                    {row.client &&
+                        (
+                            <Card>
+                                <CardContent>
+
+                                    {row.client.columns.length > 0 ? (
+                                        row.client.columns.map((col) => (
+
+                                            <div key={col.id} color="primary">
+                                                <Typography
+                                                    gutterBottom variant="h7"
+                                                    component="b"
+                                                    sx={{ mr: 1, color: blue[500] }}
+                                                >
+                                                    {col.column_name}:
+                                                </Typography>
+
+                                                {col.value}
+
+
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <span>No additional info</span>
+                                    )}
+
+                                </CardContent>
+
+                            </Card>
+
+                        )
+                    }
+                </TableCell>
+
             </TableRow>
             <TableRow>
                 <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={8}>
@@ -81,7 +137,7 @@ function Row(props) {
 
                                     <TableHead>
                                         <TableRow>
-                                            <TableCell align="center">Date</TableCell>
+
                                             <TableCell align="center">Label</TableCell>
                                             <TableCell align="center">Price (DH)</TableCell>
                                         </TableRow>
@@ -90,7 +146,7 @@ function Row(props) {
                                 <TableBody>
                                     {point.length !== 0 ? point.map((row) => (
                                         <TableRow key={row.id} >
-                                            <TableCell align="center">{row.date}</TableCell>
+
                                             <TableCell align="center">{row.lebele}</TableCell>
                                             <TableCell align="center">{row.price}</TableCell>
                                         </TableRow>
@@ -161,10 +217,12 @@ function DetailsTech() {
     };
 
     useEffect(() => {
+
         Accounts_management.show('chefequipe', chefid)
             .then(({ data, status }) => {
                 if (status === 200) {
                     setChefequipe(data);
+
                 }
             }).catch(({ response }) => {
                 if (response) {
@@ -181,7 +239,7 @@ function DetailsTech() {
                         filtered = filtered.filter(f => {
                             return formatDate(f.created_at) >= startdate && formatDate(f.created_at) <= enddate;
                         });
-
+                        //     console.log('daaata',data.charges);
                         setCharges(filtered);
                         filtered.forEach((x) => {
                             amount += x.prix * x.quantity;
@@ -190,7 +248,7 @@ function DetailsTech() {
                     }
 
                     // Save data to local storage
-                    localStorage.setItem('charges', JSON.stringify(data.charges));
+                    // localStorage.setItem('charges', JSON.stringify(data.charges));
                 }
             }).catch(({ response }) => {
                 if (response) {
@@ -211,9 +269,14 @@ function DetailsTech() {
                         setOperations(filtered)
                         setOperations_search(filtered)
 
+                        console.log('client', filtered)
                         filtered.forEach((p) => {
-                            amount += p.prix_etude;
 
+
+                            p.point.forEach((item) => {
+                                amount += item.price;
+
+                            })
 
                         })
                         setIncomes(amount)
@@ -221,7 +284,7 @@ function DetailsTech() {
 
 
 
-                    localStorage.setItem('operations', JSON.stringify(data));
+                    //      localStorage.setItem('operations', JSON.stringify(data));
 
                 }
             }).catch(({ response }) => {
@@ -231,9 +294,12 @@ function DetailsTech() {
             });
     }, [chefid, startdate, enddate]);
 
+
+
+
     useEffect(() => {
-        let filtered = JSON.parse(localStorage.getItem('charges'));
-        let filtered_operations = JSON.parse(localStorage.getItem('operations'));
+        let filtered = charges;
+        let filtered_operations = operations;
 
         let amount = 0;
         let toutalam = 0;
@@ -260,33 +326,20 @@ function DetailsTech() {
             });
 
             filtered_operations.forEach((p) => {
-                toutalam += p.prix_etude;
-                console.log(p);
+
+                p.point.forEach((item) => {
+                    //  console.log('incomes', item.price)
+                    toutalam += item.price;
+
+                })
+
             })
             setIncomes(toutalam)
             setOperations(filtered_operations)
             setOperations_search(filtered_operations)
         }
     }, [startdate, enddate]);
-    useEffect(() => {
-        let filtered = operations;
 
-        if (searchTerm) {
-            filtered = filtered.filter(f => {
-                return f.client.fullname.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase()) ||
-                    f.client.province.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase()) ||
-                    f.client.telephone.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase())
-
-            }
-            )
-            setOperations_search(filtered)
-            console.log(filtered)
-        }
-        else {
-            setOperations_search(operations)
-
-        }
-    }, [searchTerm])
 
     return (
         <>
@@ -355,15 +408,7 @@ function DetailsTech() {
 
             <Card sx={{ p: 2, width: '100%', mt: 4 }}>
                 <Stack direction="row" spacing={2} sx={{ mb: 5 }}>
-                    <Item sx={{ display: 'flex', alignItems: 'center', width: 400, height: 60 }}>
-                        <SearchIcon />
-                        <InputBase
-                            sx={{ ml: 1, flex: 1 }}
-                            onChange={handleChange}
-                            placeholder="Search for operation"
-                            inputProps={{ 'aria-label': 'search for operation' }}
-                        />
-                    </Item>
+
                     <Item sx={{ backgroundColor: 'transparent', boxShadow: 'none', display: 'flex', alignItems: 'center', width: '100%', height: 57 }}>
                         <LocalizationProvider dateAdapter={AdapterDayjs}>
                             <DemoContainer components={['DatePicker', 'DatePicker']} >
@@ -394,12 +439,14 @@ function DetailsTech() {
                                     <TableRow>
                                         <TableCell />
 
-                                        <TableCell align="center">Fullname</TableCell>
-                                        <TableCell align="center">Telephone</TableCell>
-                                        <TableCell align="center">province</TableCell>
+                                        <TableCell align="center">Date</TableCell>
+
                                         <TableCell align="center">activity</TableCell>
+                                        <TableCell align="center">Hectares</TableCell>
+
                                         <TableCell align="center">count points</TableCell>
                                         <TableCell align="center">Total price</TableCell>
+                                        <TableCell align="center">Client</TableCell>
 
                                     </TableRow>
                                 </TableHead>
@@ -446,14 +493,14 @@ function DetailsTech() {
                                                 <TableRow key={row.id}>
                                                     <TableCell />
                                                     <TableCell align="center">{formatDate(row.created_at)}</TableCell>
-                                                    <TableCell align="center">Machine X</TableCell>
+                                                    <TableCell align="center">{row.label}</TableCell>
                                                     <TableCell align="center">{row.quantity}</TableCell>
                                                     <TableCell align="center">{row.prix}</TableCell>
                                                     <TableCell align="center">
                                                         <Button sx={{ color: red[700] }}
                                                             onClick={
                                                                 () => {
-                                                                    downloadFile('R.png')
+                                                                    downloadFile(row.invoice)
                                                                 }
                                                             }>
 

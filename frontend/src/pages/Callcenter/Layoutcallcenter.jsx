@@ -11,7 +11,8 @@ import { green } from '@mui/material/colors';
 import {
     AddIcCall,
     Dashboard, DashboardRounded, Edit, Engineering, Facebook, Logout,
-    PersonAdd, PhoneForwarded, PhoneMissed, SupportAgent
+    PersonAdd, PhoneForwarded, PhoneMissed, SupportAgent,
+    Today
 } from '@mui/icons-material';
 import MuiAppBar from '@mui/material/AppBar';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -22,14 +23,17 @@ import { redirecttodashboard } from "../../router/index.jsx";
 import StarIcon from '@mui/icons-material/Star';
 import Badge from '@mui/material/Badge';
 import NotificationsIcon from '@mui/icons-material/Notifications';
+import Accounts_management from "@/services/Accounts_management";
+import dayjs from 'dayjs';
+
 const drawerWidth = 200;
 const labels = {
+    0: '',
     1: 'Useless what happened',
-    1.5: 'Poor job',
+    2: 'Poor job',
     3: 'Ok you can do more ',
     3.5: 'Good ! ',
     4: 'Good you achieved the target !',
-    4.5: 'Excellent !',
     5: 'Excellent job !',
 };
 const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
@@ -79,15 +83,19 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 function Layoutcallcenter() {
     const [anchorEl, setAnchorEl] = useState(null);
     const [open, setOpen] = useState(false);
+
     const { setUser, authenticated, setAuthenticated, logout, user } = useUserContext();
+
     const navigate = useNavigate();
     const location = useLocation();
     const theme = useTheme();
     const [isloading, setIsloading] = useState(true);
 
-    const value = 4;
+    const [value, setvalue] = useState(0);
+    const [confirmationrate, setCsonfirmationrate] = useState(0);
 
     useEffect(() => {
+
         if (authenticated) {
             setIsloading(true);
             AdminApi.getuser()
@@ -98,6 +106,49 @@ function Layoutcallcenter() {
                         navigate(redirecttodashboard(role));
                     } else {
                         setUser(data);
+                        Accounts_management.show('message', data.id)
+                            .then(({ data, status }) => {
+                                if (status === 200) {
+
+
+                                    if (data.length) {
+
+                                        let callscount = data
+                                        let confirmcount = data
+
+                                        confirmcount = confirmcount.filter(f => {
+                                            return f.statue === "Confirmé"
+                                                && f.date === dayjs().format('YYYY-MM-DD')
+
+                                        })
+
+                                        callscount = callscount.filter(f => {
+                                            return f.date === dayjs().format('YYYY-MM-DD')
+
+                                        })
+                                        // console.log('call count', callscount)
+
+                                        //  console.log('scount', confirmcount.length)
+                                        if (confirmcount.length > 0 && callscount.length > 0) {
+
+                                            let result = (confirmcount.length * 100) / callscount.length
+
+                                            //   console.log('cnf rate', result.toFixed(2))
+
+                                            setCsonfirmationrate(result.toFixed(2))
+                                        }
+
+                                    }
+
+
+                                }
+                            }).catch(({ response }) => {
+                                if (response) {
+                                    console.log(response);
+                                }
+                            });
+
+
                     }
                 })
                 .catch(() => {
@@ -113,6 +164,41 @@ function Layoutcallcenter() {
     }, [authenticated]);
 
 
+    useEffect(() => {
+
+        // const labels = {
+        //     0: '',
+        //     1: 'Useless what happened',
+        //     2: 'Poor job',
+        //     3: 'Ok you can do more ',
+        //     3.5: 'Good ! ',
+        //     4: 'Good you achieved the target !',
+        //     5: 'Excellent job !',
+        // };
+
+        if (confirmationrate < 20) {
+            setvalue(1)
+        }
+        if (confirmationrate > 20 && confirmationrate < 40) {
+            setvalue(2)
+        }
+        if (confirmationrate > 40 && confirmationrate < 60) {
+            setvalue(3)
+        }
+        if (confirmationrate > 60 && confirmationrate < 70) {
+            setvalue(3.5)
+        }
+        if (confirmationrate > 70 && confirmationrate < 80) {
+            setvalue(4)
+        }
+        if (confirmationrate > 80 && confirmationrate < 100) {
+            setvalue(5)
+        }
+
+    }, [confirmationrate]);
+
+
+
     const handleDrawerOpen = () => setOpen(true);
     const handleDrawerClose = () => setOpen(false);
     const handleMenuClick = (event) => setAnchorEl(event.currentTarget);
@@ -126,8 +212,25 @@ function Layoutcallcenter() {
     const menuItems = [
 
         { label: "My calls", icon: <PhoneMissed />, path: "/callcenter/calls" },
-        { label: "Add Calls", icon: <AddIcCall />, path: "/callcenter/add" },
+        {
+            label: "Add Calls", icon:
+                <>
+
+
+                    <Badge badgeContent={'New'} color="warning" sx={{
+                        position: 'absolute',
+                        ml: '77%',
+                        alignItems: 'center'
+
+                    }} />
+
+                    <AddIcCall sx={{ mr: 1 }} />
+                </>
+            , path: "/callcenter/add"
+        },
         { label: "Edit calls", icon: <Edit />, path: "/callcenter/edit" },
+        { label: "My meetings", icon: <Today />, path: "/callcenter/meetings" },
+
 
     ];
 
@@ -188,7 +291,7 @@ function Layoutcallcenter() {
                             size="large"
                             aria-label="show new notifications"
                             color="inherit"
-                            sx={{ mr:3 }}
+                            sx={{ mr: 3 }}
                         >
                             <Badge badgeContent={5} color="error">
                                 <NotificationsIcon />
@@ -245,6 +348,14 @@ function Layoutcallcenter() {
                                 My calls
                             </MenuItem>
 
+
+                            <MenuItem onClick={handleMenuClose} component={Link} to="/callcenter/meetings">
+                                <ListItemIcon>
+                                    <Today fontSize="small" color="error" />
+                                </ListItemIcon>
+                                My Meetings
+                            </MenuItem>
+
                             <MenuItem onClick={handleLogout}>
                                 <ListItemIcon>
                                     <Logout fontSize="small" color='error' />
@@ -286,6 +397,7 @@ function Layoutcallcenter() {
                             }}
                         >
                             {menuItems.map((item) => (
+
                                 <Tab
                                     key={item.label}
                                     icon={item.icon}
@@ -314,7 +426,7 @@ function Layoutcallcenter() {
                     </Box>
                 </Main>
             </Box>
-            
+
         </>
     );
 }
