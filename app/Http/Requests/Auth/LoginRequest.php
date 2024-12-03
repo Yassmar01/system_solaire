@@ -41,7 +41,9 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
       //  $guards = array_keys(config("auth.guards"));
-        $guards = ['admin','call_center','sysadmin','chef_equipe'];
+      //  $guards = ['admin','call_center','sysadmin','chef_equipe'];
+        $guards = ['admin','web'];
+
         $islogged = false;
 
 foreach($guards as $guard)

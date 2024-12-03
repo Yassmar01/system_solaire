@@ -44,21 +44,9 @@ return [
             'driver' => 'session',
             'provider' => 'admins',
         ],
-        'sysadmin' => [
-            'driver' => 'session',
-            'provider' => 'sysadmins',
-        ],
-        'chef_equipe' => [
-            'driver' => 'session',
-            'provider' => 'chef_equipes',
-        ],
-        'call_center' => [
-            'driver' => 'session',
-            'provider' => 'call_centers',
-        ],
 
 
-      
+
     ],
 
     /*
@@ -83,18 +71,7 @@ return [
             'driver' => 'eloquent',
             'model' => App\Models\admin::class,
         ],
-        'sysadmins' => [
-            'driver' => 'eloquent',
-            'model' => App\Models\sysadmin::class,
-        ],
-        'call_centers' => [
-            'driver' => 'eloquent',
-            'model' => App\Models\call_center::class,
-        ],
-        'chef_equipes' => [
-            'driver' => 'eloquent',
-            'model' => App\Models\chef_equipe::class,
-        ],
+
         'users' => [
             'driver' => 'eloquent',
             'model' => App\Models\User::class,
@@ -134,24 +111,7 @@ return [
             'expire' => 60,
             'throttle' => 60,
         ],
-        'sysadmins' => [
-            'provider' => 'sysadmins',
-            'table' => 'password_resets',
-            'expire' => 60,
-            'throttle' => 60,
-        ],
-        'call_centers' => [
-            'provider' => 'call_centers',
-            'table' => 'password_resets',
-            'expire' => 60,
-            'throttle' => 60,
-        ],
-        'chef_equipes' => [
-            'provider' => 'chef_equipes',
-            'table' => 'password_resets',
-            'expire' => 60,
-            'throttle' => 60,
-        ],
+        
     ],
 
     /*

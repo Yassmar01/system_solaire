@@ -1,16 +1,20 @@
+import { useEffect, useState } from 'react'
+import Login from './Pages/Login'
 import { RouterProvider } from 'react-router-dom'
-import './App.css'
 import { router } from './router'
-import UserContext from '../context/AdminContext'
-
-
+import UserContext from './context/Context'
 function App() {
+
+
+
     return (
-        <>
-            <UserContext>
-                <RouterProvider router={router} />
-            </UserContext>
-        </>
+        <UserContext>
+
+            <RouterProvider router={router} />
+        </UserContext>
+
+
     )
 }
+
 export default App
